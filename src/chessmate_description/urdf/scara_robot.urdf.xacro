@@ -1,5 +1,5 @@
-<!-- chessmate_description/urdf/scara_robot.urdf.xacro -->
 <?xml version="1.0"?>
+<!-- chessmate_description/urdf/scara_robot.urdf.xacro -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="chessmate_scara">
 
   <!-- Robot Parameters -->
