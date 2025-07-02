@@ -1,0 +1,45 @@
+# SCARA Configuration for ChessMate
+# All dimensions in meters, angles in radians
+
+scara_kinematics:
+  # Link lengths (meters)
+  l1: 0.202  # First link length
+  l2: 0.190  # Second link length
+  
+  # Z-axis limits (meters)
+  z_min: 0.0    # Minimum height
+  z_max: 0.100  # Maximum height (10cm)
+  
+  # Joint limits (radians)
+  theta1_min: -3.14159  # -180 degrees
+  theta1_max: 3.14159   # +180 degrees
+  theta2_min: -3.14159  # -180 degrees  
+  theta2_max: 3.14159   # +180 degrees
+
+chess_board:
+  # Board position relative to robot base (meters)
+  board_center_x: 0.300  # 30cm forward from robot base
+  board_center_y: 0.000  # Centered on robot Y-axis
+  board_height: 0.020    # Board surface height (2cm)
+  
+  # Board dimensions (meters)
+  square_size: 0.050     # 5cm squares (tournament standard)
+  board_size: 0.400      # Total board size (8 * 0.050)
+  
+  # Piece handling heights (meters)
+  piece_pickup_height: 0.025   # Height to pick up pieces (2.5cm)
+  piece_transport_height: 0.080 # Height for safe transport (8cm)
+  piece_place_height: 0.025    # Height to place pieces (2.5cm)
+  
+  # Captured piece storage area (meters)
+  capture_area_x: 0.150        # X position for captured pieces
+  capture_area_y_white: -0.250 # Y position for white captured pieces
+  capture_area_y_black: 0.250  # Y position for black captured pieces
+
+# Performance parameters
+kinematics_server:
+  update_rate: 100.0  # Hz
+  timeout: 5.0        # Service call timeout (seconds)
+  
+  # Logging levels: DEBUG, INFO, WARN, ERROR
+  log_level: INFO
