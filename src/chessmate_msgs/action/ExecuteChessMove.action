@@ -1,0 +1,17 @@
+# ExecuteChessMove.action - Complete move execution
+# Goal
+ChessMove move
+bool animate_move          # Show intermediate positions
+float32 move_speed        # Speed multiplier (0.1-2.0, 1.0 = normal)
+---
+# Result
+bool success
+string completion_message
+float32 execution_time
+ChessMove executed_move    # Echo of the move that was executed
+---
+# Feedback
+string current_phase      # "approaching", "gripping", "lifting", "moving", "placing", "complete"
+float32 progress_percent  # 0.0-100.0
+geometry_msgs/Pose current_pose
+string status_message     # Human-readable status
