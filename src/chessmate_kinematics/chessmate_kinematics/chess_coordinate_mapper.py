@@ -13,14 +13,15 @@ from dataclasses import dataclass
 class ChessBoardConfiguration:
     """Chess board configuration parameters"""
     # Board position relative to robot base (meters)
-    board_center_x: float = 0.300  # 30cm forward from robot base
-    board_center_y: float = 0.000  # Centered on robot Y-axis
-    board_height: float = 0.020    # Board surface height (2cm)
-    
-    # Board dimensions
-    square_size: float = 0.050     # 5cm squares (standard tournament size)
-    board_size: float = 0.400      # Total board size (8 * 0.050)
-    
+    # Updated with real F360 measurements: 137mm from robot base + 116.67mm to center
+    board_center_x: float = 0.25367  # 253.67mm forward from robot base (137mm + 116.67mm center offset)
+    board_center_y: float = 0.000    # Centered on robot Y-axis
+    board_height: float = 0.010      # Board surface height (1cm thickness)
+
+    # Board dimensions - Updated with real F360 measurements
+    square_size: float = 0.029166    # 29.166mm squares (233.33mm / 8 squares)
+    board_size: float = 0.23333      # Total board size (233.33mm from F360)
+
     # Piece handling heights
     piece_pickup_height: float = 0.025   # Height to pick up pieces (2.5cm)
     piece_transport_height: float = 0.080 # Height for safe transport (8cm)
