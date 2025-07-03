@@ -1,0 +1,172 @@
+<?xml version="1.0"?>
+<!-- chessmate_description/urdf/chess_board.urdf.xacro -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="chess_board">
+
+  <!-- Chess Board Parameters (from F360 design) -->
+  <xacro:property name="board_size" value="0.23333" />        <!-- 233.33mm -->
+  <xacro:property name="square_size" value="0.029166" />      <!-- 29.166mm (233.33/8) -->
+  <xacro:property name="board_thickness" value="0.010" />     <!-- 10mm assumed -->
+  <xacro:property name="distance_from_base" value="0.137" />  <!-- 137mm from robot base -->
+  
+  <!-- Mesh configuration -->
+  <xacro:property name="use_board_meshes" value="false" />
+  <xacro:property name="board_mesh_path" value="package://chessmate_description/meshes/board" />
+
+  <!-- Chess Board Base Link -->
+  <link name="chess_board">
+    <visual>
+      <xacro:if value="${use_board_meshes}">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${board_mesh_path}/chess_board_visual.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${use_board_meshes}">
+        <origin xyz="0 0 ${board_thickness/2}" rpy="0 0 0"/>
+        <geometry>
+          <box size="${board_size} ${board_size} ${board_thickness}"/>
+        </geometry>
+      </xacro:unless>
+      <material name="board_color">
+        <color rgba="0.8 0.6 0.4 1.0"/>  <!-- Wood color -->
+      </material>
+    </visual>
+    
+    <collision>
+      <xacro:if value="${use_board_meshes}">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${board_mesh_path}/chess_board_collision.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${use_board_meshes}">
+        <origin xyz="0 0 ${board_thickness/2}" rpy="0 0 0"/>
+        <geometry>
+          <box size="${board_size} ${board_size} ${board_thickness}"/>
+        </geometry>
+      </xacro:unless>
+    </collision>
+    
+    <inertial>
+      <origin xyz="0 0 ${board_thickness/2}" rpy="0 0 0"/>
+      <mass value="0.5"/>  <!-- 500g chess board -->
+      <inertia ixx="0.002" ixy="0" ixz="0" iyy="0.002" iyz="0" izz="0.004"/>
+    </inertial>
+  </link>
+
+  <!-- Chess Square Markers (for visualization and coordinate reference) -->
+  <xacro:macro name="chess_square" params="file rank x_pos y_pos color">
+    <link name="square_${file}${rank}">
+      <visual>
+        <origin xyz="0 0 ${board_thickness + 0.001}" rpy="0 0 0"/>
+        <geometry>
+          <box size="${square_size * 0.9} ${square_size * 0.9} 0.001"/>
+        </geometry>
+        <material name="square_${color}">
+          <xacro:if value="${color == 'light'}">
+            <color rgba="0.9 0.9 0.8 0.8"/>  <!-- Light squares -->
+          </xacro:if>
+          <xacro:if value="${color == 'dark'}">
+            <color rgba="0.4 0.3 0.2 0.8"/>  <!-- Dark squares -->
+          </xacro:if>
+        </material>
+      </visual>
+    </link>
+    
+    <joint name="board_to_${file}${rank}" type="fixed">
+      <parent link="chess_board"/>
+      <child link="square_${file}${rank}"/>
+      <origin xyz="${x_pos} ${y_pos} 0" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Generate all 64 chess squares -->
+  <!-- Files A-H, Ranks 1-8 -->
+  <xacro:property name="files" value="['a','b','c','d','e','f','g','h']" />
+  <xacro:property name="ranks" value="[1,2,3,4,5,6,7,8]" />
+  
+  <!-- A1 (bottom-left) to H8 (top-right) -->
+  <!-- Board coordinate system: A1 at (-board_size/2 + square_size/2, -board_size/2 + square_size/2) -->
+  
+  <!-- Row 1 (rank 1) -->
+  <xacro:chess_square file="a" rank="1" x_pos="${-board_size/2 + square_size/2}" y_pos="${-board_size/2 + square_size/2}" color="dark"/>
+  <xacro:chess_square file="b" rank="1" x_pos="${-board_size/2 + 1.5*square_size}" y_pos="${-board_size/2 + square_size/2}" color="light"/>
+  <xacro:chess_square file="c" rank="1" x_pos="${-board_size/2 + 2.5*square_size}" y_pos="${-board_size/2 + square_size/2}" color="dark"/>
+  <xacro:chess_square file="d" rank="1" x_pos="${-board_size/2 + 3.5*square_size}" y_pos="${-board_size/2 + square_size/2}" color="light"/>
+  <xacro:chess_square file="e" rank="1" x_pos="${-board_size/2 + 4.5*square_size}" y_pos="${-board_size/2 + square_size/2}" color="dark"/>
+  <xacro:chess_square file="f" rank="1" x_pos="${-board_size/2 + 5.5*square_size}" y_pos="${-board_size/2 + square_size/2}" color="light"/>
+  <xacro:chess_square file="g" rank="1" x_pos="${-board_size/2 + 6.5*square_size}" y_pos="${-board_size/2 + square_size/2}" color="dark"/>
+  <xacro:chess_square file="h" rank="1" x_pos="${-board_size/2 + 7.5*square_size}" y_pos="${-board_size/2 + square_size/2}" color="light"/>
+
+  <!-- Row 2 (rank 2) -->
+  <xacro:chess_square file="a" rank="2" x_pos="${-board_size/2 + square_size/2}" y_pos="${-board_size/2 + 1.5*square_size}" color="light"/>
+  <xacro:chess_square file="b" rank="2" x_pos="${-board_size/2 + 1.5*square_size}" y_pos="${-board_size/2 + 1.5*square_size}" color="dark"/>
+  <xacro:chess_square file="c" rank="2" x_pos="${-board_size/2 + 2.5*square_size}" y_pos="${-board_size/2 + 1.5*square_size}" color="light"/>
+  <xacro:chess_square file="d" rank="2" x_pos="${-board_size/2 + 3.5*square_size}" y_pos="${-board_size/2 + 1.5*square_size}" color="dark"/>
+  <xacro:chess_square file="e" rank="2" x_pos="${-board_size/2 + 4.5*square_size}" y_pos="${-board_size/2 + 1.5*square_size}" color="light"/>
+  <xacro:chess_square file="f" rank="2" x_pos="${-board_size/2 + 5.5*square_size}" y_pos="${-board_size/2 + 1.5*square_size}" color="dark"/>
+  <xacro:chess_square file="g" rank="2" x_pos="${-board_size/2 + 6.5*square_size}" y_pos="${-board_size/2 + 1.5*square_size}" color="light"/>
+  <xacro:chess_square file="h" rank="2" x_pos="${-board_size/2 + 7.5*square_size}" y_pos="${-board_size/2 + 1.5*square_size}" color="dark"/>
+
+  <!-- Row 3 (rank 3) -->
+  <xacro:chess_square file="a" rank="3" x_pos="${-board_size/2 + square_size/2}" y_pos="${-board_size/2 + 2.5*square_size}" color="dark"/>
+  <xacro:chess_square file="b" rank="3" x_pos="${-board_size/2 + 1.5*square_size}" y_pos="${-board_size/2 + 2.5*square_size}" color="light"/>
+  <xacro:chess_square file="c" rank="3" x_pos="${-board_size/2 + 2.5*square_size}" y_pos="${-board_size/2 + 2.5*square_size}" color="dark"/>
+  <xacro:chess_square file="d" rank="3" x_pos="${-board_size/2 + 3.5*square_size}" y_pos="${-board_size/2 + 2.5*square_size}" color="light"/>
+  <xacro:chess_square file="e" rank="3" x_pos="${-board_size/2 + 4.5*square_size}" y_pos="${-board_size/2 + 2.5*square_size}" color="dark"/>
+  <xacro:chess_square file="f" rank="3" x_pos="${-board_size/2 + 5.5*square_size}" y_pos="${-board_size/2 + 2.5*square_size}" color="light"/>
+  <xacro:chess_square file="g" rank="3" x_pos="${-board_size/2 + 6.5*square_size}" y_pos="${-board_size/2 + 2.5*square_size}" color="dark"/>
+  <xacro:chess_square file="h" rank="3" x_pos="${-board_size/2 + 7.5*square_size}" y_pos="${-board_size/2 + 2.5*square_size}" color="light"/>
+
+  <!-- Row 4 (rank 4) -->
+  <xacro:chess_square file="a" rank="4" x_pos="${-board_size/2 + square_size/2}" y_pos="${-board_size/2 + 3.5*square_size}" color="light"/>
+  <xacro:chess_square file="b" rank="4" x_pos="${-board_size/2 + 1.5*square_size}" y_pos="${-board_size/2 + 3.5*square_size}" color="dark"/>
+  <xacro:chess_square file="c" rank="4" x_pos="${-board_size/2 + 2.5*square_size}" y_pos="${-board_size/2 + 3.5*square_size}" color="light"/>
+  <xacro:chess_square file="d" rank="4" x_pos="${-board_size/2 + 3.5*square_size}" y_pos="${-board_size/2 + 3.5*square_size}" color="dark"/>
+  <xacro:chess_square file="e" rank="4" x_pos="${-board_size/2 + 4.5*square_size}" y_pos="${-board_size/2 + 3.5*square_size}" color="light"/>
+  <xacro:chess_square file="f" rank="4" x_pos="${-board_size/2 + 5.5*square_size}" y_pos="${-board_size/2 + 3.5*square_size}" color="dark"/>
+  <xacro:chess_square file="g" rank="4" x_pos="${-board_size/2 + 6.5*square_size}" y_pos="${-board_size/2 + 3.5*square_size}" color="light"/>
+  <xacro:chess_square file="h" rank="4" x_pos="${-board_size/2 + 7.5*square_size}" y_pos="${-board_size/2 + 3.5*square_size}" color="dark"/>
+
+  <!-- Row 5 (rank 5) -->
+  <xacro:chess_square file="a" rank="5" x_pos="${-board_size/2 + square_size/2}" y_pos="${-board_size/2 + 4.5*square_size}" color="dark"/>
+  <xacro:chess_square file="b" rank="5" x_pos="${-board_size/2 + 1.5*square_size}" y_pos="${-board_size/2 + 4.5*square_size}" color="light"/>
+  <xacro:chess_square file="c" rank="5" x_pos="${-board_size/2 + 2.5*square_size}" y_pos="${-board_size/2 + 4.5*square_size}" color="dark"/>
+  <xacro:chess_square file="d" rank="5" x_pos="${-board_size/2 + 3.5*square_size}" y_pos="${-board_size/2 + 4.5*square_size}" color="light"/>
+  <xacro:chess_square file="e" rank="5" x_pos="${-board_size/2 + 4.5*square_size}" y_pos="${-board_size/2 + 4.5*square_size}" color="dark"/>
+  <xacro:chess_square file="f" rank="5" x_pos="${-board_size/2 + 5.5*square_size}" y_pos="${-board_size/2 + 4.5*square_size}" color="light"/>
+  <xacro:chess_square file="g" rank="5" x_pos="${-board_size/2 + 6.5*square_size}" y_pos="${-board_size/2 + 4.5*square_size}" color="dark"/>
+  <xacro:chess_square file="h" rank="5" x_pos="${-board_size/2 + 7.5*square_size}" y_pos="${-board_size/2 + 4.5*square_size}" color="light"/>
+
+  <!-- Row 6 (rank 6) -->
+  <xacro:chess_square file="a" rank="6" x_pos="${-board_size/2 + square_size/2}" y_pos="${-board_size/2 + 5.5*square_size}" color="light"/>
+  <xacro:chess_square file="b" rank="6" x_pos="${-board_size/2 + 1.5*square_size}" y_pos="${-board_size/2 + 5.5*square_size}" color="dark"/>
+  <xacro:chess_square file="c" rank="6" x_pos="${-board_size/2 + 2.5*square_size}" y_pos="${-board_size/2 + 5.5*square_size}" color="light"/>
+  <xacro:chess_square file="d" rank="6" x_pos="${-board_size/2 + 3.5*square_size}" y_pos="${-board_size/2 + 5.5*square_size}" color="dark"/>
+  <xacro:chess_square file="e" rank="6" x_pos="${-board_size/2 + 4.5*square_size}" y_pos="${-board_size/2 + 5.5*square_size}" color="light"/>
+  <xacro:chess_square file="f" rank="6" x_pos="${-board_size/2 + 5.5*square_size}" y_pos="${-board_size/2 + 5.5*square_size}" color="dark"/>
+  <xacro:chess_square file="g" rank="6" x_pos="${-board_size/2 + 6.5*square_size}" y_pos="${-board_size/2 + 5.5*square_size}" color="light"/>
+  <xacro:chess_square file="h" rank="6" x_pos="${-board_size/2 + 7.5*square_size}" y_pos="${-board_size/2 + 5.5*square_size}" color="dark"/>
+
+  <!-- Row 7 (rank 7) -->
+  <xacro:chess_square file="a" rank="7" x_pos="${-board_size/2 + square_size/2}" y_pos="${-board_size/2 + 6.5*square_size}" color="dark"/>
+  <xacro:chess_square file="b" rank="7" x_pos="${-board_size/2 + 1.5*square_size}" y_pos="${-board_size/2 + 6.5*square_size}" color="light"/>
+  <xacro:chess_square file="c" rank="7" x_pos="${-board_size/2 + 2.5*square_size}" y_pos="${-board_size/2 + 6.5*square_size}" color="dark"/>
+  <xacro:chess_square file="d" rank="7" x_pos="${-board_size/2 + 3.5*square_size}" y_pos="${-board_size/2 + 6.5*square_size}" color="light"/>
+  <xacro:chess_square file="e" rank="7" x_pos="${-board_size/2 + 4.5*square_size}" y_pos="${-board_size/2 + 6.5*square_size}" color="dark"/>
+  <xacro:chess_square file="f" rank="7" x_pos="${-board_size/2 + 5.5*square_size}" y_pos="${-board_size/2 + 6.5*square_size}" color="light"/>
+  <xacro:chess_square file="g" rank="7" x_pos="${-board_size/2 + 6.5*square_size}" y_pos="${-board_size/2 + 6.5*square_size}" color="dark"/>
+  <xacro:chess_square file="h" rank="7" x_pos="${-board_size/2 + 7.5*square_size}" y_pos="${-board_size/2 + 6.5*square_size}" color="light"/>
+
+  <!-- Row 8 (rank 8) -->
+  <xacro:chess_square file="a" rank="8" x_pos="${-board_size/2 + square_size/2}" y_pos="${-board_size/2 + 7.5*square_size}" color="light"/>
+  <xacro:chess_square file="b" rank="8" x_pos="${-board_size/2 + 1.5*square_size}" y_pos="${-board_size/2 + 7.5*square_size}" color="dark"/>
+  <xacro:chess_square file="c" rank="8" x_pos="${-board_size/2 + 2.5*square_size}" y_pos="${-board_size/2 + 7.5*square_size}" color="light"/>
+  <xacro:chess_square file="d" rank="8" x_pos="${-board_size/2 + 3.5*square_size}" y_pos="${-board_size/2 + 7.5*square_size}" color="dark"/>
+  <xacro:chess_square file="e" rank="8" x_pos="${-board_size/2 + 4.5*square_size}" y_pos="${-board_size/2 + 7.5*square_size}" color="light"/>
+  <xacro:chess_square file="f" rank="8" x_pos="${-board_size/2 + 5.5*square_size}" y_pos="${-board_size/2 + 7.5*square_size}" color="dark"/>
+  <xacro:chess_square file="g" rank="8" x_pos="${-board_size/2 + 6.5*square_size}" y_pos="${-board_size/2 + 7.5*square_size}" color="light"/>
+  <xacro:chess_square file="h" rank="8" x_pos="${-board_size/2 + 7.5*square_size}" y_pos="${-board_size/2 + 7.5*square_size}" color="dark"/>
+
+</robot>
+

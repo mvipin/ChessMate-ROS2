@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<!-- chessmate_description/urdf/chessmate_complete.urdf.xacro -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="chessmate_complete">
+
+  <!-- Include SCARA robot -->
+  <xacro:include filename="$(find chessmate_description)/urdf/scara_robot.urdf.xacro"/>
+  
+  <!-- Include chess board -->
+  <xacro:include filename="$(find chessmate_description)/urdf/chess_board.urdf.xacro"/>
+
+  <!-- Chess Board Positioning Parameters -->
+  <!-- Board positioned 137mm from robot base (closest edge) -->
+  <!-- Assuming board center is at X=137mm + board_size/2 = 137 + 116.67 = 253.67mm -->
+  <xacro:property name="board_center_x" value="0.25367" />  <!-- 253.67mm from base -->
+  <xacro:property name="board_center_y" value="0.0" />      <!-- Centered on Y-axis -->
+  <xacro:property name="board_center_z" value="0.0" />      <!-- On table surface -->
+
+  <!-- Joint connecting chess board to world frame -->
+  <joint name="world_to_chess_board" type="fixed">
+    <parent link="world"/>
+    <child link="chess_board"/>
+    <origin xyz="${board_center_x} ${board_center_y} ${board_center_z}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Chess Coordinate Reference Frame -->
+  <!-- This frame helps with coordinate calculations -->
+  <link name="chess_reference">
+    <visual>
+      <origin xyz="0 0 0.001" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.005" length="0.002"/>
+      </geometry>
+      <material name="reference_marker">
+        <color rgba="1.0 0.0 0.0 1.0"/>  <!-- Red marker -->
+      </material>
+    </visual>
+  </link>
+
+  <joint name="board_to_reference" type="fixed">
+    <parent link="chess_board"/>
+    <child link="chess_reference"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>  <!-- At board center -->
+  </joint>
+
+  <!-- Key Chess Square Reference Points -->
+  <!-- A1 (bottom-left from robot perspective) -->
+  <link name="square_a1_center">
+    <visual>
+      <origin xyz="0 0 0.001" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.003" length="0.002"/>
+      </geometry>
+      <material name="a1_marker">
+        <color rgba="0.0 1.0 0.0 1.0"/>  <!-- Green marker -->
+      </material>
+    </visual>
+  </link>
+
+  <joint name="board_to_a1_center" type="fixed">
+    <parent link="chess_board"/>
+    <child link="square_a1_center"/>
+    <origin xyz="${-board_size/2 + square_size/2} ${-board_size/2 + square_size/2} 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- H8 (top-right from robot perspective) -->
+  <link name="square_h8_center">
+    <visual>
+      <origin xyz="0 0 0.001" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.003" length="0.002"/>
+      </geometry>
+      <material name="h8_marker">
+        <color rgba="0.0 0.0 1.0 1.0"/>  <!-- Blue marker -->
+      </material>
+    </visual>
+  </link>
+
+  <joint name="board_to_h8_center" type="fixed">
+    <parent link="chess_board"/>
+    <child link="square_h8_center"/>
+    <origin xyz="${board_size/2 - square_size/2} ${board_size/2 - square_size/2} 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- E4 (center square - common reference) -->
+  <link name="square_e4_center">
+    <visual>
+      <origin xyz="0 0 0.001" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.003" length="0.002"/>
+      </geometry>
+      <material name="e4_marker">
+        <color rgba="1.0 1.0 0.0 1.0"/>  <!-- Yellow marker -->
+      </material>
+    </visual>
+  </link>
+
+  <joint name="board_to_e4_center" type="fixed">
+    <parent link="chess_board"/>
+    <child link="square_e4_center"/>
+    <origin xyz="${-board_size/2 + 4.5*square_size} ${-board_size/2 + 3.5*square_size} 0" rpy="0 0 0"/>
+  </joint>
+
+</robot>
