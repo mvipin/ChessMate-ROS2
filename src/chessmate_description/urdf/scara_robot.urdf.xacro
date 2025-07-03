@@ -93,11 +93,29 @@
     </inertial>
   </link>
 
-  <!-- Joint 2 (Shoulder) -->
-  <joint name="shoulder_joint" type="revolute">
+  <!-- Intermediate link for mechanical coupling -->
+  <joint name="coupling_joint" type="revolute">
     <parent link="link1"/>
-    <child link="link2"/>
+    <child link="coupling_link"/>
     <origin xyz="${link1_length} 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14" upper="3.14" effort="10" velocity="2.0"/>
+    <mimic joint="base_joint" multiplier="-1.0" offset="0.0"/>
+  </joint>
+
+  <!-- Coupling link (invisible, just for kinematics) -->
+  <link name="coupling_link">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <!-- Joint 2 (Independent L2 control) -->
+  <joint name="shoulder_joint" type="revolute">
+    <parent link="coupling_link"/>
+    <child link="link2"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <limit lower="-1.57" upper="1.57" effort="10" velocity="2.0"/>
   </joint>
