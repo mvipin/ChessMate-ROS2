@@ -9,20 +9,40 @@
   <xacro:property name="link2_width" value="0.022" />
   <xacro:property name="base_height" value="0.1" />
 
+  <!-- Mesh usage flag - set to true when STL files are available -->
+  <xacro:property name="use_meshes" value="true" />
+
+  <!-- Package path for meshes -->
+  <xacro:property name="mesh_path" value="package://chessmate_description/meshes" />
+
   <!-- Base Link -->
   <link name="base_link">
     <visual>
-      <geometry>
-        <cylinder radius="0.05" length="${base_height}"/>
-      </geometry>
+      <xacro:if value="${use_meshes}">
+        <geometry>
+          <mesh filename="${mesh_path}/visual/base_link_visual.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${use_meshes}">
+        <geometry>
+          <cylinder radius="0.05" length="${base_height}"/>
+        </geometry>
+      </xacro:unless>
       <material name="base_color">
         <color rgba="0.5 0.5 0.5 1.0"/>
       </material>
     </visual>
     <collision>
-      <geometry>
-        <cylinder radius="0.05" length="${base_height}"/>
-      </geometry>
+      <xacro:if value="${use_meshes}">
+        <geometry>
+          <mesh filename="${mesh_path}/collision/base_link_collision.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${use_meshes}">
+        <geometry>
+          <cylinder radius="0.05" length="${base_height}"/>
+        </geometry>
+      </xacro:unless>
     </collision>
     <inertial>
       <mass value="2.0"/>
@@ -72,19 +92,34 @@
   <!-- Link 1 -->
   <link name="link1">
     <visual>
-      <origin xyz="${link1_length/2} 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="${link1_length} ${link1_width} ${link1_width}"/>
-      </geometry>
-      <material name="link_color">
+      <xacro:if value="${use_meshes}">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_path}/visual/link1_visual.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${use_meshes}">
+        <origin xyz="${link1_length/2} 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${link1_length} ${link1_width} ${link1_width}"/>
+        </geometry>
+      </xacro:unless>
+      <material name="link1_color">
         <color rgba="0.8 0.2 0.2 1.0"/>
       </material>
     </visual>
     <collision>
-      <origin xyz="${link1_length/2} 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="${link1_length} ${link1_width} ${link1_width}"/>
-      </geometry>
+      <xacro:if value="${use_meshes}">
+        <geometry>
+          <mesh filename="${mesh_path}/collision/link1_collision.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${use_meshes}">
+        <origin xyz="${link1_length/2} 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${link1_length} ${link1_width} ${link1_width}"/>
+        </geometry>
+      </xacro:unless>
     </collision>
     <inertial>
       <origin xyz="${link1_length/2} 0 0" rpy="0 0 0"/>
@@ -123,19 +158,34 @@
   <!-- Link 2 -->
   <link name="link2">
     <visual>
-      <origin xyz="${link2_length/2} 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="${link2_length} ${link2_width} ${link2_width}"/>
-      </geometry>
-      <material name="link_color">
+      <xacro:if value="${use_meshes}">
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="${mesh_path}/visual/link2_visual.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${use_meshes}">
+        <origin xyz="${link2_length/2} 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${link2_length} ${link2_width} ${link2_width}"/>
+        </geometry>
+      </xacro:unless>
+      <material name="link2_color">
         <color rgba="0.2 0.8 0.2 1.0"/>
       </material>
     </visual>
     <collision>
-      <origin xyz="${link2_length/2} 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="${link2_length} ${link2_width} ${link2_width}"/>
-      </geometry>
+      <xacro:if value="${use_meshes}">
+        <geometry>
+          <mesh filename="${mesh_path}/collision/link2_collision.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${use_meshes}">
+        <origin xyz="${link2_length/2} 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${link2_length} ${link2_width} ${link2_width}"/>
+        </geometry>
+      </xacro:unless>
     </collision>
     <inertial>
       <origin xyz="${link2_length/2} 0 0" rpy="0 0 0"/>
@@ -154,17 +204,31 @@
   <!-- End Effector -->
   <link name="end_effector">
     <visual>
-      <geometry>
-        <box size="0.03 0.03 0.02"/>
-      </geometry>
+      <xacro:if value="${use_meshes}">
+        <geometry>
+          <mesh filename="${mesh_path}/visual/end_effector_visual.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${use_meshes}">
+        <geometry>
+          <box size="0.03 0.03 0.02"/>
+        </geometry>
+      </xacro:unless>
       <material name="gripper_color">
         <color rgba="0.2 0.2 0.8 1.0"/>
       </material>
     </visual>
     <collision>
-      <geometry>
-        <box size="0.03 0.03 0.02"/>
-      </geometry>
+      <xacro:if value="${use_meshes}">
+        <geometry>
+          <mesh filename="${mesh_path}/collision/end_effector_collision.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </xacro:if>
+      <xacro:unless value="${use_meshes}">
+        <geometry>
+          <box size="0.03 0.03 0.02"/>
+        </geometry>
+      </xacro:unless>
     </collision>
     <inertial>
       <mass value="0.1"/>
