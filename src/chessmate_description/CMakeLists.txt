@@ -33,3 +33,9 @@ install(DIRECTORY
   meshes
   DESTINATION share/${PROJECT_NAME}
 )
+
+# Install Python scripts
+install(PROGRAMS
+  scripts/chess_animation_demo.py
+  DESTINATION lib/${PROJECT_NAME}
+)
