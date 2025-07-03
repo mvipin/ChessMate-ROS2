@@ -5,6 +5,8 @@
   <!-- Robot Parameters -->
   <xacro:property name="link1_length" value="0.202" />
   <xacro:property name="link2_length" value="0.190" />
+  <xacro:property name="link1_width" value="0.044" />
+  <xacro:property name="link2_width" value="0.022" />
   <xacro:property name="base_height" value="0.1" />
 
   <!-- Base Link -->
@@ -42,7 +44,7 @@
     <visual>
       <origin xyz="${link1_length/2} 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="${link1_length} 0.05 0.05"/>
+        <box size="${link1_length} ${link1_width} ${link1_width}"/>
       </geometry>
       <material name="link_color">
         <color rgba="0.8 0.2 0.2 1.0"/>
@@ -51,7 +53,7 @@
     <collision>
       <origin xyz="${link1_length/2} 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="${link1_length} 0.05 0.05"/>
+        <box size="${link1_length} ${link1_width} ${link1_width}"/>
       </geometry>
     </collision>
     <inertial>
@@ -75,7 +77,7 @@
     <visual>
       <origin xyz="${link2_length/2} 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="${link2_length} 0.04 0.04"/>
+        <box size="${link2_length} ${link2_width} ${link2_width}"/>
       </geometry>
       <material name="link_color">
         <color rgba="0.2 0.8 0.2 1.0"/>
@@ -84,7 +86,7 @@
     <collision>
       <origin xyz="${link2_length/2} 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="${link2_length} 0.04 0.04"/>
+        <box size="${link2_length} ${link2_width} ${link2_width}"/>
       </geometry>
     </collision>
     <inertial>
@@ -100,7 +102,7 @@
     <child link="end_effector"/>
     <origin xyz="${link2_length} 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
-    <limit lower="0" upper="0.05" effort="5" velocity="0.1"/>
+    <limit lower="0" upper="0.1" effort="5" velocity="0.1"/>
   </joint>
 
   <!-- End Effector -->
