@@ -159,12 +159,14 @@
   </link>
 
   <!-- Joint 2 (Independent L2 control) -->
+  <!-- Limits set to prevent self-collision: 30° buffer on each side -->
   <joint name="shoulder_joint" type="revolute">
     <parent link="coupling_link"/>
     <child link="link2"/>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
-    <limit lower="-1.57" upper="1.57" effort="10" velocity="2.0"/>
+    <limit lower="-2.618" upper="2.618" effort="10" velocity="2.0"/>
+    <!-- lower=-150°, upper=+150° to maintain 30° buffer from ±180° folded position -->
   </joint>
 
   <!-- Link 2 -->

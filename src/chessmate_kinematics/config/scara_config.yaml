@@ -5,16 +5,20 @@ scara_kinematics:
   # Link lengths (meters)
   l1: 0.202  # First link length
   l2: 0.190  # Second link length
-  
+
   # Z-axis limits (meters)
   z_min: 0.0    # Minimum height
   z_max: 0.100  # Maximum height (10cm)
-  
+
   # Joint limits (radians)
   theta1_min: -3.14159  # -180 degrees
   theta1_max: 3.14159   # +180 degrees
-  theta2_min: -3.14159  # -180 degrees  
+  theta2_min: -3.14159  # -180 degrees
   theta2_max: 3.14159   # +180 degrees
+
+  # Self-collision avoidance
+  collision_buffer_angle: 0.5236  # 30 degrees in radians (30° = π/6)
+  enable_collision_avoidance: true  # Enable collision checking
 
 chess_board:
   # Board position relative to robot base (meters)

@@ -17,12 +17,16 @@ class SCARAConfiguration:
     l2: float = 0.190  # Link 2 length (meters)
     z_min: float = 0.0  # Minimum Z height (meters)
     z_max: float = 0.100  # Maximum Z height (meters)
-    
+
     # Joint limits (radians)
     theta1_min: float = -math.pi
     theta1_max: float = math.pi
     theta2_min: float = -math.pi
     theta2_max: float = math.pi
+
+    # Self-collision avoidance parameters
+    collision_buffer_angle: float = math.radians(30)  # 30-degree buffer on each side
+    enable_collision_avoidance: bool = True
 
 
 class SCARAKinematics:
@@ -172,15 +176,137 @@ class SCARAKinematics:
             return True
         except ValueError:
             return False
+
+    def is_collision_free(self, theta1: float, theta2: float, z: float) -> bool:
+        """
+        Check if a joint configuration is collision-free
+
+        Args:
+            theta1: Base joint angle (radians)
+            theta2: Elbow joint angle (radians)
+            z: Vertical position (meters)
+
+        Returns:
+            True if configuration is collision-free, False otherwise
+        """
+        try:
+            # Check both joint limits AND collision avoidance
+            self._validate_joint_limits(theta1, theta2, z)
+            if self.config.enable_collision_avoidance:
+                self._validate_collision_avoidance(theta1, theta2)
+            return True
+        except ValueError:
+            return False
+
+    def get_collision_free_theta2_range(self, theta1: float) -> Tuple[float, float]:
+        """
+        Get the valid range of theta2 values that avoid self-collision for a given theta1
+
+        Args:
+            theta1: Base joint angle (radians)
+
+        Returns:
+            Tuple of (theta2_min, theta2_max) valid range
+        """
+        if not self.config.enable_collision_avoidance:
+            return (self.config.theta2_min, self.config.theta2_max)
+
+        buffer = self.config.collision_buffer_angle
+        buffer_deg = math.degrees(buffer)
+
+        # Safe range based on collision avoidance logic (relaxed by 10° on both sides):
+        # - Avoid theta2 ≈ 0° (alignment): theta2 > +20° (relaxed from 30°)
+        # - Avoid folding back: theta2 < 100° (relaxed from 90°)
+
+        relaxed_alignment_buffer = buffer - math.radians(10.0)  # 30° - 10° = 20°
+        relaxed_max_angle = math.radians(90.0 + 10.0)  # 90° + 10° = 100°
+
+        safe_min = relaxed_alignment_buffer  # +20° (avoid alignment)
+        safe_max = relaxed_max_angle  # 100° maximum
+
+        # Apply joint limits
+        safe_min = max(safe_min, self.config.theta2_min)
+        safe_max = min(safe_max, self.config.theta2_max)
+
+        return (safe_min, safe_max)
     
     def _validate_joint_limits(self, theta1: float, theta2: float, z: float):
-        """Validate joint angles against limits"""
+        """Validate joint angles against limits and collision constraints"""
         if not (self.config.theta1_min <= theta1 <= self.config.theta1_max):
             raise ValueError(f"theta1 {theta1:.3f} outside limits [{self.config.theta1_min:.3f}, {self.config.theta1_max:.3f}]")
         if not (self.config.theta2_min <= theta2 <= self.config.theta2_max):
             raise ValueError(f"theta2 {theta2:.3f} outside limits [{self.config.theta2_min:.3f}, {self.config.theta2_max:.3f}]")
         if not (self.config.z_min <= z <= self.config.z_max):
             raise ValueError(f"z {z:.3f} outside limits [{self.config.z_min:.3f}, {self.config.z_max:.3f}]")
+
+        # Check self-collision avoidance
+        if self.config.enable_collision_avoidance:
+            self._validate_collision_avoidance(theta1, theta2)
+
+    def _validate_collision_avoidance(self, theta1: float, theta2: float):
+        """
+        Validate that Link 2 doesn't fold back onto Link 1
+
+        For SCARA robots, collision occurs when Link 2 physically overlaps with Link 1.
+        This happens primarily when theta2 is in ranges that cause Link 2 to "fold back".
+
+        The critical insight: theta2 represents the angle between Link 1 and Link 2.
+        - theta2 ≈ 0°: Links are aligned (potential collision)
+        - theta2 > 90°: Link 2 starts folding back toward the base
+        - theta2 ≈ 180°: Link 2 is fully folded back (definite collision)
+
+        Args:
+            theta1: Base joint angle (radians)
+            theta2: Elbow joint angle (radians)
+
+        Raises:
+            ValueError: If configuration would cause self-collision
+        """
+        buffer = self.config.collision_buffer_angle
+        buffer_deg = math.degrees(buffer)
+
+        # Normalize theta2 to [-pi, pi] for consistent checking
+        theta2_norm = math.atan2(math.sin(theta2), math.cos(theta2))
+        theta2_deg = math.degrees(theta2_norm)
+
+        # COLLISION ZONE 1: Link alignment (theta2 ≈ 0°)
+        # Relaxed by 10° from 30° to 20°
+        relaxed_alignment_buffer = buffer_deg - 10.0  # 30° - 10° = 20°
+        if abs(theta2_deg) < relaxed_alignment_buffer:
+            raise ValueError(
+                f"Self-collision: θ2={theta2_deg:.1f}° too close to link alignment (0°). "
+                f"Buffer required: ±{relaxed_alignment_buffer:.1f}°"
+            )
+
+        # COLLISION ZONE 2: Folded back configurations
+        # Based on your observation that θ2=124.5° causes overlap, we need to be more restrictive
+        # For SCARA robots, Link 2 starts to physically interfere with Link 1 when θ2 > ~90°
+        # With a 30° buffer, the maximum safe angle should be around 90° - not 120°!
+
+        # Relaxed by 10° from 90° to 100°
+        max_safe_theta2 = 90.0 + 10.0  # 90° + 10° = 100°
+
+
+
+        if theta2_deg > max_safe_theta2:
+            raise ValueError(
+                f"Self-collision: θ2={theta2_deg:.1f}° causes Link 2 to fold back onto Link 1. "
+                f"Maximum safe angle: {max_safe_theta2:.1f}°"
+            )
+
+        # COLLISION ZONE 3: Negative folding (symmetric constraint)
+        if theta2_deg < -max_safe_theta2:
+            raise ValueError(
+                f"Self-collision: θ2={theta2_deg:.1f}° causes Link 2 to fold back onto Link 1. "
+                f"Minimum safe angle: {-max_safe_theta2:.1f}°"
+            )
+
+        # COLLISION ZONE 4: Near ±180° (fully folded)
+        if abs(abs(theta2_deg) - 180.0) < buffer_deg:
+            raise ValueError(
+                f"Self-collision: θ2={theta2_deg:.1f}° too close to fully folded (±180°). "
+                f"Buffer required: {buffer_deg:.1f}°"
+            )
     
     @staticmethod
     def _normalize_angle(angle: float) -> float:

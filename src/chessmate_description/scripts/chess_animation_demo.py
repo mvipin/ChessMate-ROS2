@@ -19,7 +19,7 @@ import os
 # Add the kinematics package to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../chessmate_kinematics'))
 
-from chessmate_kinematics.scara_kinematics import SCARAKinematics
+from chessmate_kinematics.scara_kinematics import SCARAKinematics, SCARAConfiguration
 from chessmate_kinematics.chess_coordinate_mapper import ChessBoardMapper
 
 
@@ -31,9 +31,15 @@ class ChessAnimationDemo(Node):
     def __init__(self):
         super().__init__('chess_animation_demo')
         
-        # Initialize kinematics and chess board mapper
-        self.scara = SCARAKinematics()
+        # Initialize kinematics with collision avoidance enabled
+        collision_config = SCARAConfiguration(
+            collision_buffer_angle=math.radians(30),  # 30-degree buffer
+            enable_collision_avoidance=True
+        )
+        self.scara = SCARAKinematics(collision_config)
         self.board_mapper = ChessBoardMapper()
+
+        self.get_logger().info('🛡️ Collision avoidance enabled: 30° buffer around Link 1')
         
         # Joint state publisher
         self.joint_pub = self.create_publisher(JointState, 'joint_states', 10)
@@ -95,22 +101,29 @@ class ChessAnimationDemo(Node):
             x, y, _ = self.board_mapper.get_pickup_position(target_square)
             z = target_z_height  # Use custom Z-height for dramatic movement
 
-            # Check if reachable
+            # Check if reachable and collision-free
             if self.scara.is_reachable(x, y, z):
                 # Calculate inverse kinematics
                 theta1, theta2, z_joint = self.scara.inverse_kinematics(x, y, z)
 
-                # Update trajectory
-                self.start_joints = self.current_joints.copy()
-                self.target_joints = [theta1, theta2, z_joint]
+                # Double-check collision avoidance
+                if self.scara.is_collision_free(theta1, theta2, z_joint):
+                    # Update trajectory
+                    self.start_joints = self.current_joints.copy()
+                    self.target_joints = [theta1, theta2, z_joint]
 
-                self.get_logger().info(
-                    f'Moving to {target_square}@{z*1000:.0f}mm: ({x*1000:.1f}, {y*1000:.1f}, {z*1000:.1f})mm '
-                    f'-> joints [{math.degrees(theta1):.1f}°, {math.degrees(theta2):.1f}°, {z_joint*1000:.1f}mm]'
-                )
+                    self.get_logger().info(
+                        f'✅ Moving to {target_square}@{z*1000:.0f}mm: ({x*1000:.1f}, {y*1000:.1f}, {z*1000:.1f})mm '
+                        f'-> joints [{math.degrees(theta1):.1f}°, {math.degrees(theta2):.1f}°, {z_joint*1000:.1f}mm]'
+                    )
+                else:
+                    self.get_logger().warn(f'🛡️ Square {target_square}@{z*1000:.0f}mm would cause collision! Skipping...')
+                    self.current_target_idx += 1
+                    self.calculate_next_target()
+                    return
 
             else:
-                self.get_logger().warn(f'Square {target_square}@{z*1000:.0f}mm is not reachable! Skipping...')
+                self.get_logger().warn(f'❌ Square {target_square}@{z*1000:.0f}mm is not reachable! Skipping...')
                 self.current_target_idx += 1
                 self.calculate_next_target()
                 return
