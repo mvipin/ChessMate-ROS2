@@ -3,6 +3,7 @@ from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration, Command
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
+from launch_ros.parameter_descriptions import ParameterValue
 import os
 from ament_index_python.packages import get_package_share_directory
 
@@ -27,7 +28,7 @@ def generate_launch_description():
             package='robot_state_publisher',
             executable='robot_state_publisher',
             name='robot_state_publisher',
-            parameters=[{'robot_description': robot_desc}],
+            parameters=[{'robot_description': ParameterValue(robot_desc, value_type=str)}],
             output='screen'
         ),
         
