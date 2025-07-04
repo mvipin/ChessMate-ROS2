@@ -15,43 +15,56 @@ class TestSCARAKinematics:
         """Set up test fixtures"""
         self.scara = SCARAKinematics()
     
-    def test_forward_kinematics_zero_position(self):
-        """Test forward kinematics at zero position"""
-        x, y, z = self.scara.forward_kinematics(0.0, 0.0, 0.05)
-        
-        # At zero angles, end effector should be at (l1 + l2, 0, z)
-        expected_x = self.scara.config.l1 + self.scara.config.l2
-        expected_y = 0.0
+    def test_forward_kinematics_safe_position(self):
+        """Test forward kinematics at a collision-safe position"""
+        # Use θ2=30° which is safe (above 20° collision buffer)
+        theta2_safe = math.radians(30)  # 30 degrees - safe configuration
+        x, y, z = self.scara.forward_kinematics(0.0, theta2_safe, 0.05)
+
+        # Calculate expected position using trigonometry
+        l1, l2 = self.scara.config.l1, self.scara.config.l2
+        expected_x = l1 + l2 * math.cos(theta2_safe)
+        expected_y = l2 * math.sin(theta2_safe)
         expected_z = 0.05
-        
+
         assert abs(x - expected_x) < 1e-6
         assert abs(y - expected_y) < 1e-6
         assert abs(z - expected_z) < 1e-6
     
     def test_forward_kinematics_90_degrees(self):
-        """Test forward kinematics at 90 degrees"""
+        """Test forward kinematics at 90 degrees with safe θ2"""
         theta1 = math.pi / 2  # 90 degrees
-        theta2 = 0.0
+        theta2 = math.radians(45)  # 45 degrees - safe configuration
         z = 0.03
-        
+
         x, y, z_out = self.scara.forward_kinematics(theta1, theta2, z)
-        
-        # At 90 degrees, end effector should be at (0, l1 + l2, z)
-        expected_x = 0.0
-        expected_y = self.scara.config.l1 + self.scara.config.l2
-        
+
+        # Calculate expected position
+        l1, l2 = self.scara.config.l1, self.scara.config.l2
+        # After theta1 rotation, Link 1 points in +Y direction
+        # Link 2 is at angle theta2 relative to Link 1
+        link1_end_x = 0.0  # l1 * cos(90°) = 0
+        link1_end_y = l1   # l1 * sin(90°) = l1
+
+        # Link 2 position relative to Link 1 end
+        link2_x = l2 * math.cos(theta1 + theta2)
+        link2_y = l2 * math.sin(theta1 + theta2)
+
+        expected_x = link1_end_x + link2_x
+        expected_y = link1_end_y + link2_y
+
         assert abs(x - expected_x) < 1e-6
         assert abs(y - expected_y) < 1e-6
         assert abs(z_out - z) < 1e-6
     
     def test_inverse_kinematics_roundtrip(self):
         """Test that FK -> IK -> FK gives consistent results"""
-        # Test multiple configurations (within workspace)
+        # Test multiple configurations (within workspace and collision-safe)
         test_configs = [
-            (0.0, 0.0, 0.05),
-            (math.pi/4, math.pi/6, 0.03),
-            (-math.pi/6, math.pi/4, 0.08),
-            (math.pi/6, -math.pi/6, 0.02)
+            (0.0, math.radians(30), 0.05),      # Safe: θ2=30° > 20° buffer
+            (math.pi/4, math.radians(45), 0.03), # Safe: θ2=45° in valid range
+            (-math.pi/6, math.radians(60), 0.08), # Safe: θ2=60° in valid range
+            (math.pi/6, math.radians(75), 0.02)   # Safe: θ2=75° < 100° limit
         ]
 
         for theta1_orig, theta2_orig, z_orig in test_configs:
@@ -97,6 +110,33 @@ class TestSCARAKinematics:
         
         with pytest.raises(ValueError):
             self.scara.inverse_kinematics(0.2, 0.0, 0.15)   # Above maximum
+
+    def test_collision_avoidance(self):
+        """Test self-collision avoidance system"""
+        # Test configurations that should be blocked
+        with pytest.raises(ValueError, match="Self-collision"):
+            self.scara.forward_kinematics(0.0, 0.0, 0.05)  # θ2=0° (alignment)
+
+        with pytest.raises(ValueError, match="Self-collision"):
+            self.scara.forward_kinematics(0.0, math.radians(15), 0.05)  # θ2=15° < 20° buffer
+
+        with pytest.raises(ValueError, match="Self-collision"):
+            self.scara.forward_kinematics(0.0, math.radians(105), 0.05)  # θ2=105° > 100° limit
+
+        # Test configurations that should be allowed
+        try:
+            self.scara.forward_kinematics(0.0, math.radians(20), 0.05)  # θ2=20° (boundary)
+            self.scara.forward_kinematics(0.0, math.radians(30), 0.05)  # θ2=30° (safe)
+            self.scara.forward_kinematics(0.0, math.radians(90), 0.05)  # θ2=90° (safe)
+            self.scara.forward_kinematics(0.0, math.radians(100), 0.05) # θ2=100° (boundary)
+        except ValueError:
+            pytest.fail("Safe configurations should not raise collision errors")
+
+        # Test collision-free checking
+        assert not self.scara.is_collision_free(0.0, 0.0, 0.05)  # Should fail
+        assert not self.scara.is_collision_free(0.0, math.radians(15), 0.05)  # Should fail
+        assert self.scara.is_collision_free(0.0, math.radians(30), 0.05)  # Should pass
+        assert self.scara.is_collision_free(0.0, math.radians(90), 0.05)  # Should pass
 
 
 class TestChessBoardMapper:
