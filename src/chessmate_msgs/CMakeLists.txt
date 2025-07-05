@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(action_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 # Generate interfaces
@@ -22,8 +23,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/ForwardKinematics.srv"
   "srv/InverseKinematics.srv"
   "srv/ChessSquareKinematics.srv"
+  "srv/GetBestMove.srv"
+  "srv/EvaluatePosition.srv"
+  "srv/ValidateMove.srv"
+  "srv/UpdateGameState.srv"
   "action/ExecuteChessMove.action"
-  DEPENDENCIES geometry_msgs sensor_msgs std_msgs
+  DEPENDENCIES geometry_msgs sensor_msgs std_msgs action_msgs
 )
 
 if(BUILD_TESTING)
