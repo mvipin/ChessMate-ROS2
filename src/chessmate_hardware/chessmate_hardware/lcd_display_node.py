@@ -18,6 +18,18 @@ from typing import List, Optional, Dict, Any
 from chessmate_msgs.msg import LCDCommand, RotaryEncoderEvent
 from .gpio_abstraction import GPIOAbstraction
 
+# PIL imports for image processing
+from PIL import Image, ImageDraw, ImageFont
+
+# Real hardware imports (only imported when needed)
+try:
+    import board
+    import busio
+    import adafruit_ssd1306
+    REAL_HARDWARE_AVAILABLE = True
+except ImportError:
+    REAL_HARDWARE_AVAILABLE = False
+
 
 class LCDDisplayNode(Node):
     """
@@ -119,29 +131,28 @@ class LCDDisplayNode(Node):
             self._init_mock_display()
     
     def _init_real_display(self):
-        """Initialize real SSD1306 display"""
+        """Initialize real SSD1306 display using Adafruit library"""
         try:
-            # Import the LCD module from the original code
-            import sys
-            import os
-            
-            # Add the LCD module path
-            lcd_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '..', '..', '..', 'LCD')
-            if os.path.exists(lcd_path):
-                sys.path.insert(0, lcd_path)
-            
-            from LCD import SSD1306
-            from RPi import GPIO
-            from PIL import Image, ImageDraw, ImageFont
-            
-            # Initialize display
-            self.oled = SSD1306.SSD1306_128_32(rst=None, gpio=GPIO, i2c_bus=self.i2c_bus)
-            self.oled.begin()
-            self.oled.clear()
-            self.oled.display()
-            
-            # Initialize PIL objects
-            self.image = Image.new('1', (self.oled.width, self.oled.height))
+            if not REAL_HARDWARE_AVAILABLE:
+                raise ImportError("Real hardware libraries not available")
+
+            # Initialize I2C bus
+            i2c = busio.I2C(board.SCL, board.SDA)
+
+            # Initialize SSD1306 display (128x32 pixels)
+            self.oled = adafruit_ssd1306.SSD1306_I2C(
+                self.display_width,
+                self.display_height,
+                i2c,
+                addr=0x3C  # Default I2C address for SSD1306
+            )
+
+            # Clear display
+            self.oled.fill(0)
+            self.oled.show()
+
+            # Initialize PIL objects for drawing
+            self.image = Image.new('1', (self.display_width, self.display_height))
             self.draw = ImageDraw.Draw(self.image)
             
             # Load fonts
@@ -252,10 +263,10 @@ class LCDDisplayNode(Node):
     def _clear_display(self):
         """Clear the display"""
         if self.use_real_display:
-            self.draw.rectangle((-1, -1, self.oled.width + 1, self.oled.height + 1), 
+            self.draw.rectangle((0, 0, self.display_width, self.display_height),
                               outline=0, fill=0)
             self.oled.image(self.image)
-            self.oled.display()
+            self.oled.show()
         else:
             self.oled.clear()
     
@@ -276,7 +287,7 @@ class LCDDisplayNode(Node):
             self._clear_display()
             self.draw.text((x, y), text, font=font, fill=1)
             self.oled.image(self.image)
-            self.oled.display()
+            self.oled.show()
         else:
             self.oled.display_text(text, x, y)
         
@@ -354,7 +365,7 @@ class LCDDisplayNode(Node):
                 top += 10
             
             self.oled.image(self.image)
-            self.oled.display()
+            self.oled.show()
         else:
             self.oled.display_menu(self.menu_options[start:end], 
                                  self.menu_option - start if self.menu_option is not None else -1)

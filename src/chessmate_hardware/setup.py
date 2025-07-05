@@ -16,6 +16,9 @@ setup(
         'setuptools',
         'pyserial',
         'pillow',  # For LCD image processing
+        'adafruit-circuitpython-ssd1306',
+        'adafruit-circuitpython-busio',
+        # Alternative: 'luma.oled',  # Uncomment if using luma instead
     ],
     zip_safe=True,
     maintainer='smtuser',
