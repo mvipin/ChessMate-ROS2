@@ -268,6 +268,7 @@ class ArduinoCommunicationNode(Node):
             Formatted command string
         """
         command_map = {
+            ArduinoCommand.CMD_INIT: "init",
             ArduinoCommand.CMD_OCCUPANCY: "occupancy",
             ArduinoCommand.CMD_LEGAL_MOVES: "legal",
             ArduinoCommand.CMD_HINT: "hint",
@@ -276,13 +277,19 @@ class ArduinoCommunicationNode(Node):
             ArduinoCommand.CMD_COMPUTER_MOVE: "comp",
             ArduinoCommand.CMD_OVERRIDE_MOVE: "override",
             ArduinoCommand.CMD_RESET: "reset",
-            ArduinoCommand.CMD_CHECKMATE: "checkmate"
+            ArduinoCommand.CMD_CHECKMATE: "checkmate",
+            ArduinoCommand.CMD_HEARTBEAT: "heartbeat"
         }
         
         command_name = command_map.get(msg.command_type, "unknown")
         
         if msg.data:
-            return f"{command_name}:{msg.data}\n"
+            # Special handling for occupancy command - convert algebraic to numeric
+            if msg.command_type == ArduinoCommand.CMD_OCCUPANCY:
+                formatted_data = self._format_occupancy_data(msg.data)
+                return f"{command_name}:{formatted_data}\n"
+            else:
+                return f"{command_name}:{msg.data}\n"
         else:
             return f"{command_name}\n"
     
@@ -374,17 +381,37 @@ class ArduinoCommunicationNode(Node):
         """
         Process board controller response
 
+        Arduino sends various response types:
+        - Move strings: "e2e4", "a1h8", etc. (4 characters)
+        - Special codes: "ffff" (hint override)
+        - Single character indications: "i", "j", "z"
+        - Debug messages: "Host initialized", "no mem", etc.
+
         Args:
             response: Response from board controller
         """
         try:
-            # Parse different types of board responses
-            if response.startswith("occupancy_ack:"):
-                self._parse_occupancy_response(response)
-            elif response.startswith("comp_ack:") or response.startswith("user_move:"):
+            response = response.strip()
+
+            # Check for move responses (4 character algebraic notation)
+            if len(response) == 4 and response.isalnum() and response.islower():
                 self._parse_move_response(response)
-            elif response.startswith("start_ack"):
-                self.get_logger().debug("Board ready for user move")
+            # Check for special codes
+            elif response == "ffff":
+                self.get_logger().info("Board: Hint override detected")
+            # Check for single character indications
+            elif response in ["i", "j", "z"]:
+                indication_map = {
+                    "i": "Computer turn started",
+                    "j": "Move validation failed - reset requested",
+                    "z": "Checkmate detected"
+                }
+                self.get_logger().info(f"Board indication: {indication_map.get(response, response)}")
+            # Check for debug/status messages
+            elif "Host initialized" in response:
+                self.get_logger().info("Board controller initialized successfully")
+            elif "no mem" in response:
+                self.get_logger().error("Board controller: Memory allocation failed")
             else:
                 self.get_logger().info(f"Board response: {response}")
 
@@ -411,20 +438,62 @@ class ArduinoCommunicationNode(Node):
         except Exception as e:
             self.get_logger().error(f"Error parsing occupancy response: {e}")
 
-    def _parse_move_response(self, response: str):
-        """Parse move confirmation response"""
-        try:
-            # Format: "comp_ack:e2e4" or "user_move:e2e4"
-            parts = response.split(":")
-            if len(parts) > 1:
-                move_uci = parts[1]
-                self.get_logger().info(f"Move confirmed: {move_uci}")
+    def _parse_move_response(self, move: str):
+        """
+        Parse move confirmation response
 
-                # Could publish move confirmation message here
+        Args:
+            move: 4-character move string (e.g., "e2e4")
+        """
+        try:
+            self.get_logger().info(f"Move confirmed by board: {move}")
+
+            # Create and publish BoardState message with move
+            board_msg = BoardState()
+            board_msg.timestamp = self.get_clock().now().to_msg()
+            board_msg.last_move = move
+
+            self.board_state_publisher.publish(board_msg)
 
         except Exception as e:
             self.get_logger().error(f"Error parsing move response: {e}")
-    
+
+    def _format_occupancy_data(self, data: str) -> str:
+        """
+        Convert occupancy data from algebraic notation to numeric format expected by Arduino
+
+        Args:
+            data: Colon-separated algebraic squares (e.g., "a1:b2:c3")
+
+        Returns:
+            Colon-separated numeric indices (e.g., "0:9:18")
+        """
+        try:
+            if not data:
+                return ""
+
+            squares = data.split(":")
+            numeric_indices = []
+
+            for square in squares:
+                if len(square) == 2:
+                    col = ord(square[0].lower()) - ord('a')  # a=0, b=1, ..., h=7
+                    row = int(square[1]) - 1  # 1=0, 2=1, ..., 8=7
+
+                    if 0 <= col <= 7 and 0 <= row <= 7:
+                        index = row * 8 + col  # Convert to 0-63 index
+                        numeric_indices.append(str(index))
+                    else:
+                        self.get_logger().warning(f"Invalid square notation: {square}")
+                else:
+                    self.get_logger().warning(f"Invalid square format: {square}")
+
+            return ":".join(numeric_indices)
+
+        except Exception as e:
+            self.get_logger().error(f"Error formatting occupancy data: {e}")
+            return data  # Return original data if conversion fails
+
     def _process_arm_response(self, response: str):
         """
         Process arm controller response
