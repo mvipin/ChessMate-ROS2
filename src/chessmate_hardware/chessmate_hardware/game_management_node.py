@@ -151,6 +151,12 @@ class GameManagementNode(Node):
             'robot_status',
             qos_profile
         )
+
+        self.game_events_publisher = self.create_publisher(
+            String,
+            'game_events',
+            qos_profile
+        )
         
         # Create service clients for chess engine
         self.get_best_move_client = self.create_client(GetBestMove, 'get_best_move')
@@ -346,9 +352,11 @@ class GameManagementNode(Node):
         if self.human_is_white:
             self.current_state = GameState.HUMAN_TURN
             self._show_status("Your turn (White)")
+            self._publish_game_event("human_turn_started")
         else:
             self.current_state = GameState.COMPUTER_TURN
             self._show_status("Computer thinking...")
+            self._publish_game_event("computer_turn_started")
     
     def _start_puzzle(self):
         """Start a chess puzzle"""
@@ -470,7 +478,17 @@ class GameManagementNode(Node):
             text=status
         )
         self.get_logger().info(f"Status: {status}")
-    
+
+    def _publish_game_event(self, event: str):
+        """Publish game event for robot animation controller"""
+        try:
+            msg = String()
+            msg.data = event
+            self.game_events_publisher.publish(msg)
+            self.get_logger().info(f"Published game event: {event}")
+        except Exception as e:
+            self.get_logger().error(f"Error publishing game event: {e}")
+
     def _update_chess_engine_state(self):
         """Update chess engine with current game state"""
         # This would call the UpdateGameState service

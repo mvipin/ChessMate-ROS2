@@ -15,6 +15,21 @@ uint8 CMD_RESET = 8
 uint8 CMD_CHECKMATE = 9
 uint8 CMD_HEARTBEAT = 10
 
+# Robot animation commands (sent directly to robot controller)
+uint8 CMD_ROBOT_WAKE_UP = 20
+uint8 CMD_ROBOT_DOZE_OFF = 21
+uint8 CMD_ROBOT_THINK_HARD = 22
+uint8 CMD_ROBOT_RESET_POSE = 23
+uint8 CMD_ROBOT_HOME_Z = 24
+uint8 CMD_ROBOT_HOME_ALL = 25
+uint8 CMD_ROBOT_EXECUTE_MOVE = 26
+
+# Game flow indication commands (replaces single-character indications)
+uint8 CMD_GAME_COMPUTER_TURN = 30
+uint8 CMD_GAME_HUMAN_TURN = 31
+uint8 CMD_GAME_MOVE_INVALID = 32
+uint8 CMD_GAME_CHECKMATE = 33
+
 uint8 command_type
 
 # Command payload data

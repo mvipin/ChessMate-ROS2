@@ -103,13 +103,26 @@ def generate_launch_description():
         }],
         output='screen'
     )
-    
+
+    # Robot Animation Controller Node
+    robot_animation_controller = Node(
+        package='chessmate_hardware',
+        executable='robot_animation_controller',
+        name='robot_animation_controller',
+        output='screen',
+        parameters=[{
+            'animation_timeout': 30.0,  # Seconds before doze off
+            'move_execution_timeout': 60.0,  # Max time for move execution
+        }]
+    )
+
     # Group all hardware nodes
     hardware_group = GroupAction([
         rotary_encoder_node,
         lcd_display_node,
         arduino_communication_node,
-        game_management_node
+        game_management_node,
+        robot_animation_controller
     ])
     
     return LaunchDescription([

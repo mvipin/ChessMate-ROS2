@@ -32,6 +32,7 @@ setup(
             'lcd_display_node = chessmate_hardware.lcd_display_node:main',
             'arduino_communication_node = chessmate_hardware.arduino_communication_node:main',
             'game_management_node = chessmate_hardware.game_management_node:main',
+            'robot_animation_controller = chessmate_hardware.robot_animation_controller:main',
         ],
     },
 )

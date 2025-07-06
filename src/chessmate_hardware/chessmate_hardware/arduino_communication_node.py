@@ -278,11 +278,35 @@ class ArduinoCommunicationNode(Node):
             ArduinoCommand.CMD_OVERRIDE_MOVE: "override",
             ArduinoCommand.CMD_RESET: "reset",
             ArduinoCommand.CMD_CHECKMATE: "checkmate",
-            ArduinoCommand.CMD_HEARTBEAT: "heartbeat"
+            ArduinoCommand.CMD_HEARTBEAT: "heartbeat",
+
+            # Robot animation commands (sent as single characters to robot controller)
+            ArduinoCommand.CMD_ROBOT_WAKE_UP: "i",
+            ArduinoCommand.CMD_ROBOT_DOZE_OFF: "s",
+            ArduinoCommand.CMD_ROBOT_THINK_HARD: "i",  # Wake up triggers think hard
+            ArduinoCommand.CMD_ROBOT_RESET_POSE: "z",
+            ArduinoCommand.CMD_ROBOT_HOME_Z: "j",
+            ArduinoCommand.CMD_ROBOT_HOME_ALL: "z",
+            ArduinoCommand.CMD_ROBOT_EXECUTE_MOVE: "move",  # Special handling for 6-char moves
+
+            # Game flow commands (for chessboard controller)
+            ArduinoCommand.CMD_GAME_COMPUTER_TURN: "comp_turn",
+            ArduinoCommand.CMD_GAME_HUMAN_TURN: "human_turn",
+            ArduinoCommand.CMD_GAME_MOVE_INVALID: "invalid",
+            ArduinoCommand.CMD_GAME_CHECKMATE: "checkmate"
         }
         
         command_name = command_map.get(msg.command_type, "unknown")
-        
+
+        if command_name == "unknown":
+            self.get_logger().warning(f"Unknown command type: {msg.command_type}")
+            return "unknown\n"
+
+        # Special handling for robot commands
+        if msg.target_arduino == ArduinoType.ROBOT_CONTROLLER.value:
+            return self._format_robot_command(msg, command_name)
+
+        # Format chessboard controller commands
         if msg.data:
             # Special handling for occupancy command - convert algebraic to numeric
             if msg.command_type == ArduinoCommand.CMD_OCCUPANCY:
@@ -292,7 +316,54 @@ class ArduinoCommunicationNode(Node):
                 return f"{command_name}:{msg.data}\n"
         else:
             return f"{command_name}\n"
-    
+
+    def _format_robot_command(self, msg, command_name: str) -> str:
+        """
+        Format commands for robot controller Arduino
+
+        Robot controller expects:
+        - Single character indications: 'i', 'j', 'z', 's'
+        - 6-character move commands: e.g., "e2pe4p"
+
+        Args:
+            msg: ArduinoCommand message
+            command_name: Mapped command name
+
+        Returns:
+            Formatted command string
+        """
+        try:
+            # Handle move execution specially
+            if msg.command_type == ArduinoCommand.CMD_ROBOT_EXECUTE_MOVE:
+                if msg.data and len(msg.data) == 6:
+                    # Send 6-character move directly
+                    return f"{msg.data}\n"
+                else:
+                    self.get_logger().error(f"Invalid move format: {msg.data}")
+                    return ""
+
+            # Handle single-character indications
+            robot_single_char_commands = {
+                ArduinoCommand.CMD_ROBOT_WAKE_UP: "i",
+                ArduinoCommand.CMD_ROBOT_DOZE_OFF: "s",
+                ArduinoCommand.CMD_ROBOT_HOME_Z: "j",
+                ArduinoCommand.CMD_ROBOT_HOME_ALL: "z",
+                ArduinoCommand.CMD_ROBOT_RESET_POSE: "z"
+            }
+
+            if msg.command_type in robot_single_char_commands:
+                return f"{robot_single_char_commands[msg.command_type]}\n"
+
+            # Default formatting for other robot commands
+            if msg.data:
+                return f"{command_name}:{msg.data}\n"
+            else:
+                return f"{command_name}\n"
+
+        except Exception as e:
+            self.get_logger().error(f"Error formatting robot command: {e}")
+            return ""
+
     def _send_command(self, serial_conn, command: str, arduino_type: ArduinoType):
         """
         Send command to Arduino

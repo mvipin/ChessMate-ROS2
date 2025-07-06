@@ -23,6 +23,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/RotaryEncoderEvent.msg"
   "msg/LCDCommand.msg"
   "msg/ArduinoCommand.msg"
+  "msg/RobotAnimation.msg"
   "srv/ForwardKinematics.srv"
   "srv/InverseKinematics.srv"
   "srv/ChessSquareKinematics.srv"
