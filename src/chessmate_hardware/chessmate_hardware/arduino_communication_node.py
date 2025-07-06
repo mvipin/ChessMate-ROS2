@@ -25,8 +25,8 @@ from std_msgs.msg import String
 
 class ArduinoType(Enum):
     """Arduino controller types"""
-    BOARD_CONTROLLER = 0
-    ARM_CONTROLLER = 1
+    CHESSBOARD_CONTROLLER = 0
+    ROBOT_CONTROLLER = 1
 
 
 class ArduinoCommunicationNode(Node):
@@ -45,17 +45,17 @@ class ArduinoCommunicationNode(Node):
         super().__init__('arduino_communication_node')
         
         # Declare parameters
-        self.declare_parameter('board_controller_port', '/dev/ttyUSB0')
-        self.declare_parameter('arm_controller_port', '/dev/ttyUSB1')
+        self.declare_parameter('chessboard_controller_port', '/dev/ttyUSB0')
+        self.declare_parameter('robot_controller_port', '/dev/ttyUSB1')
         self.declare_parameter('baud_rate', 9600)
         self.declare_parameter('timeout', 1.0)
         self.declare_parameter('use_mock_serial', not GPIOAbstraction.is_raspberry_pi())
         self.declare_parameter('command_timeout', 5.0)
         self.declare_parameter('heartbeat_interval', 10.0)
-        
+
         # Get parameters
-        self.board_port = self.get_parameter('board_controller_port').value
-        self.arm_port = self.get_parameter('arm_controller_port').value
+        self.chessboard_port = self.get_parameter('chessboard_controller_port').value
+        self.robot_port = self.get_parameter('robot_controller_port').value
         self.baud_rate = self.get_parameter('baud_rate').value
         self.timeout = self.get_parameter('timeout').value
         use_mock_serial = self.get_parameter('use_mock_serial').value
@@ -63,14 +63,14 @@ class ArduinoCommunicationNode(Node):
         self.heartbeat_interval = self.get_parameter('heartbeat_interval').value
         
         self.get_logger().info(f"Arduino Communication Node starting")
-        self.get_logger().info(f"Board controller: {self.board_port}, Arm controller: {self.arm_port}")
-        
+        self.get_logger().info(f"Chessboard controller: {self.chessboard_port}, Robot controller: {self.robot_port}")
+
         # Serial connection management
         self.use_mock_serial = use_mock_serial
         self.serial_connections: Dict[ArduinoType, serial.Serial] = {}
         self.command_queues: Dict[ArduinoType, queue.Queue] = {
-            ArduinoType.BOARD_CONTROLLER: queue.Queue(),
-            ArduinoType.ARM_CONTROLLER: queue.Queue()
+            ArduinoType.CHESSBOARD_CONTROLLER: queue.Queue(),
+            ArduinoType.ROBOT_CONTROLLER: queue.Queue()
         }
         self.response_callbacks: Dict[str, Callable] = {}
         
@@ -152,27 +152,27 @@ class ArduinoCommunicationNode(Node):
     def _init_real_serial(self):
         """Initialize real serial connections"""
         try:
-            # Initialize board controller connection
+            # Initialize chessboard controller connection
             try:
-                self.serial_connections[ArduinoType.BOARD_CONTROLLER] = serial.Serial(
-                    self.board_port,
+                self.serial_connections[ArduinoType.CHESSBOARD_CONTROLLER] = serial.Serial(
+                    self.chessboard_port,
                     self.baud_rate,
                     timeout=self.timeout
                 )
-                self.get_logger().info(f"Board controller connected on {self.board_port}")
+                self.get_logger().info(f"Chessboard controller connected on {self.chessboard_port}")
             except Exception as e:
-                self.get_logger().warning(f"Failed to connect to board controller: {e}")
-            
-            # Initialize arm controller connection
+                self.get_logger().warning(f"Failed to connect to chessboard controller: {e}")
+
+            # Initialize robot controller connection
             try:
-                self.serial_connections[ArduinoType.ARM_CONTROLLER] = serial.Serial(
-                    self.arm_port,
+                self.serial_connections[ArduinoType.ROBOT_CONTROLLER] = serial.Serial(
+                    self.robot_port,
                     self.baud_rate,
                     timeout=self.timeout
                 )
-                self.get_logger().info(f"Arm controller connected on {self.arm_port}")
+                self.get_logger().info(f"Robot controller connected on {self.robot_port}")
             except Exception as e:
-                self.get_logger().warning(f"Failed to connect to arm controller: {e}")
+                self.get_logger().warning(f"Failed to connect to robot controller: {e}")
                 
         except Exception as e:
             self.get_logger().error(f"Serial initialization failed: {e}, using mock serial")
@@ -181,8 +181,8 @@ class ArduinoCommunicationNode(Node):
     
     def _init_mock_serial(self):
         """Initialize mock serial connections for development"""
-        self.serial_connections[ArduinoType.BOARD_CONTROLLER] = MockSerial("Board Controller")
-        self.serial_connections[ArduinoType.ARM_CONTROLLER] = MockSerial("Arm Controller")
+        self.serial_connections[ArduinoType.CHESSBOARD_CONTROLLER] = MockSerial("Chessboard Controller")
+        self.serial_connections[ArduinoType.ROBOT_CONTROLLER] = MockSerial("Robot Controller")
         self.get_logger().info("Mock serial connections initialized for development")
     
     def _start_communication_threads(self):
@@ -369,17 +369,17 @@ class ArduinoCommunicationNode(Node):
             self.arduino_response_publisher.publish(response_msg)
             
             # Process specific response types
-            if arduino_type == ArduinoType.BOARD_CONTROLLER:
-                self._process_board_response(response)
-            elif arduino_type == ArduinoType.ARM_CONTROLLER:
-                self._process_arm_response(response)
+            if arduino_type == ArduinoType.CHESSBOARD_CONTROLLER:
+                self._process_chessboard_response(response)
+            elif arduino_type == ArduinoType.ROBOT_CONTROLLER:
+                self._process_robot_response(response)
                 
         except Exception as e:
             self.get_logger().error(f"Error processing response: {e}")
     
-    def _process_board_response(self, response: str):
+    def _process_chessboard_response(self, response: str):
         """
-        Process board controller response
+        Process chessboard controller response
 
         Arduino sends various response types:
         - Move strings: "e2e4", "a1h8", etc. (4 characters)
@@ -388,7 +388,7 @@ class ArduinoCommunicationNode(Node):
         - Debug messages: "Host initialized", "no mem", etc.
 
         Args:
-            response: Response from board controller
+            response: Response from chessboard controller
         """
         try:
             response = response.strip()
@@ -409,14 +409,14 @@ class ArduinoCommunicationNode(Node):
                 self.get_logger().info(f"Board indication: {indication_map.get(response, response)}")
             # Check for debug/status messages
             elif "Host initialized" in response:
-                self.get_logger().info("Board controller initialized successfully")
+                self.get_logger().info("Chessboard controller initialized successfully")
             elif "no mem" in response:
-                self.get_logger().error("Board controller: Memory allocation failed")
+                self.get_logger().error("Chessboard controller: Memory allocation failed")
             else:
-                self.get_logger().info(f"Board response: {response}")
+                self.get_logger().info(f"Chessboard response: {response}")
 
         except Exception as e:
-            self.get_logger().error(f"Error parsing board response: {e}")
+            self.get_logger().error(f"Error parsing chessboard response: {e}")
 
     def _parse_occupancy_response(self, response: str):
         """Parse board occupancy response and publish BoardState"""
@@ -494,17 +494,17 @@ class ArduinoCommunicationNode(Node):
             self.get_logger().error(f"Error formatting occupancy data: {e}")
             return data  # Return original data if conversion fails
 
-    def _process_arm_response(self, response: str):
+    def _process_robot_response(self, response: str):
         """
-        Process arm controller response
-        
+        Process robot controller response
+
         Args:
-            response: Response from arm controller
+            response: Response from robot controller
         """
-        # Parse arm controller responses
-        self.get_logger().info(f"Arm response: {response}")
-        
-        # TODO: Parse arm status, movement completion, etc.
+        # Parse robot controller responses
+        self.get_logger().info(f"Robot response: {response}")
+
+        # TODO: Parse robot status, movement completion, etc.
     
     def _send_heartbeat(self):
         """Send periodic heartbeat to Arduino controllers"""

@@ -20,5 +20,5 @@ uint8 command_type
 # Command payload data
 string data
 
-# Target Arduino (0=board controller, 1=arm controller)
+# Target Arduino (0=chessboard controller, 1=robot controller)
 uint8 target_arduino

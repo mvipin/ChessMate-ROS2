@@ -80,8 +80,8 @@ def generate_launch_description():
         executable='arduino_communication_node',
         name='arduino_communication_node',
         parameters=[{
-            'board_controller_port': '/dev/ttyUSB0',
-            'arm_controller_port': '/dev/ttyUSB1',
+            'chessboard_controller_port': '/dev/ttyUSB0',
+            'robot_controller_port': '/dev/ttyUSB1',
             'baud_rate': 9600,
             'timeout': 1.0,
             'command_timeout': 5.0,
