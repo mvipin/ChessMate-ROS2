@@ -19,10 +19,18 @@ def generate_launch_description():
     """Generate launch description for hardware nodes"""
     
     # Declare launch arguments
+    # Legacy parameter support
     use_real_hardware_arg = DeclareLaunchArgument(
         'use_real_hardware',
         default_value='false',
-        description='Use real hardware (true) or mock hardware (false)'
+        description='[DEPRECATED] Use real hardware (true) or mock hardware (false). Use hardware_mode instead.'
+    )
+
+    # New unified parameter
+    hardware_mode_arg = DeclareLaunchArgument(
+        'hardware_mode',
+        default_value='mock',
+        description='Hardware mode: real, mock, or simulation'
     )
     
     skill_level_arg = DeclareLaunchArgument(
@@ -39,6 +47,18 @@ def generate_launch_description():
     
     # Get launch configuration values
     use_real_hardware = LaunchConfiguration('use_real_hardware')
+    hardware_mode = LaunchConfiguration('hardware_mode')
+
+    # Convert legacy parameter to new format
+    def convert_hardware_mode(context):
+        use_real = context.launch_configurations.get('use_real_hardware', 'false')
+        mode = context.launch_configurations.get('hardware_mode', 'mock')
+
+        # If hardware_mode is explicitly set, use it
+        if mode != 'mock':
+            return mode
+        # Otherwise convert from legacy parameter
+        return 'real' if use_real.lower() == 'true' else 'mock'
     skill_level = LaunchConfiguration('skill_level')
     time_limit = LaunchConfiguration('time_limit')
     
@@ -51,6 +71,7 @@ def generate_launch_description():
             'clk_pin': 11,
             'dt_pin': 12,
             'btn_pin': 13,
+            'hardware_mode': hardware_mode,
             'use_real_gpio': use_real_hardware,
             'publish_rate': 10.0
         }],
@@ -63,6 +84,7 @@ def generate_launch_description():
         executable='lcd_display_node',
         name='lcd_display_node',
         parameters=[{
+            'hardware_mode': hardware_mode,
             'use_real_display': use_real_hardware,
             'i2c_bus': 11,
             'display_width': 128,
@@ -80,6 +102,7 @@ def generate_launch_description():
         executable='arduino_communication_node',
         name='arduino_communication_node',
         parameters=[{
+            'hardware_mode': hardware_mode,
             'chessboard_controller_port': '/dev/ttyUSB0',
             'robot_controller_port': '/dev/ttyUSB1',
             'baud_rate': 9600,
@@ -127,6 +150,7 @@ def generate_launch_description():
     
     return LaunchDescription([
         use_real_hardware_arg,
+        hardware_mode_arg,
         skill_level_arg,
         time_limit_arg,
         hardware_group

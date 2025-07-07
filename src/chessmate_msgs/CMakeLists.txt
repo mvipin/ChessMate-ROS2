@@ -19,11 +19,13 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ChessPiece.msg"
   "msg/BoardState.msg"
   "msg/GripperCommand.msg"
+  "msg/JointCommand.msg"
   "msg/RobotStatus.msg"
   "msg/RotaryEncoderEvent.msg"
   "msg/LCDCommand.msg"
   "msg/ArduinoCommand.msg"
   "msg/RobotAnimation.msg"
+  "msg/SensorReading.msg"
   "srv/ForwardKinematics.srv"
   "srv/InverseKinematics.srv"
   "srv/ChessSquareKinematics.srv"
@@ -31,8 +33,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/EvaluatePosition.srv"
   "srv/ValidateMove.srv"
   "srv/UpdateGameState.srv"
+  "srv/CalibrateArm.srv"
   "action/ExecuteChessMove.action"
-  DEPENDENCIES geometry_msgs sensor_msgs std_msgs action_msgs
+  DEPENDENCIES geometry_msgs sensor_msgs std_msgs action_msgs builtin_interfaces
 )
 
 if(BUILD_TESTING)

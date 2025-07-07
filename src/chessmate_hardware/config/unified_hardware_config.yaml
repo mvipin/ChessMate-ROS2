@@ -1,0 +1,172 @@
+# Unified Hardware Configuration for ChessMate
+# Cross-platform configuration supporting both Linux host and Raspberry Pi deployment
+
+# Global parameters for all nodes
+/**:
+  ros__parameters:
+    # Platform Detection
+    platform_auto_detect: true
+    platform_override: ""  # Options: "linux_host", "raspberry_pi", "mock"
+
+    # Hardware Mode Configuration
+    hardware_mode: "real"  # Options: "real", "mock", "simulation"
+    use_mock_hardware: false  # Derived from hardware_mode
+
+    # Serial Port Configuration
+    serial_chessboard_port: "/dev/ttyUSB0"
+    serial_robot_port: "/dev/ttyUSB1"
+    serial_baud_rate: 9600
+    serial_timeout: 2.0
+
+    # Protocol Configuration
+    chessboard_protocol: "character"  # Options: "character", "json", "auto"
+    robot_protocol: "character"       # Options: "character", "json", "auto"
+    command_terminator: "\n"
+    response_timeout: 1.0
+    max_retries: 3
+
+    # JSON protocol settings
+    json_pretty_print: false
+    json_include_timestamps: true
+    json_command_id_min: 1
+    json_command_id_max: 9999
+
+    # Character protocol settings
+    character_single_char_commands: true
+    character_move_format: "6char"  # e.g., "e2e4p" for pawn move
+
+    # Hardware Parameters - SCARA arm
+    scara_link1_length: 0.202  # meters
+    scara_link2_length: 0.190  # meters
+    scara_z_axis_max: 0.050    # meters
+    scara_z_axis_min: 0.000    # meters
+    scara_joint1_min: -2.094   # -120 degrees
+    scara_joint1_max: 2.094    # +120 degrees
+    scara_joint2_min: -2.094   # -120 degrees
+    scara_joint2_max: 2.094    # +120 degrees
+    scara_workspace_radius_min: 0.050
+    scara_workspace_radius_max: 0.350
+
+    # Chessboard parameters
+    chessboard_square_size: 0.057   # meters (57mm squares)
+    chessboard_board_size: 0.456    # meters (8 * 57mm)
+    chessboard_sensor_type: "hall_effect"  # Options: "hall_effect", "reed_switch", "optical"
+    chessboard_led_matrix_size: 64  # 8x8 LED matrix
+
+    # Safety parameters
+    safety_emergency_stop_enabled: true
+    safety_max_joint_velocity: 1.0      # rad/s
+    safety_max_joint_acceleration: 2.0  # rad/s²
+    safety_collision_detection: true
+    safety_workspace_monitoring: true
+    safety_estop_immediate_stop: true
+    safety_estop_power_off_motors: true
+    safety_estop_require_manual_reset: true
+
+    # Publishing Rates (Hz)
+    sensor_publish_rate: 10.0
+    status_publish_rate: 1.0
+    joint_state_rate: 20.0
+    board_state_rate: 5.0
+
+    # Calibration Settings
+    auto_calibrate: false
+    calibration_timeout: 30.0  # seconds
+    calibration_default_type: "home"  # Options: "home", "full", "joints", "workspace"
+    calibration_use_limit_switches: false
+    calibration_speed: 0.5  # Fraction of max speed
+    calibration_save_calibration: true
+    calibration_position_accuracy: 0.001  # meters
+    calibration_angle_accuracy: 0.017     # radians (1 degree)
+
+    # Testing Configuration
+    enable_hardware_tests: true
+    test_timeout: 30.0  # seconds per test
+    test_joint1_range_min: -0.2  # radians
+    test_joint1_range_max: 0.2   # radians
+    test_joint2_range_min: -0.2  # radians
+    test_joint2_range_max: 0.2   # radians
+    test_z_range_min: 0.005      # meters
+    test_z_range_max: 0.030      # meters
+    test_joint_velocity: 0.1     # rad/s
+    test_z_velocity: 0.01        # m/s
+    test_velocity_scaling: 0.5   # Overall scaling factor
+
+    # Logging Configuration
+    console_log_level: "INFO"
+    file_log_level: "DEBUG"
+    log_to_file: true
+    log_file_path: "/tmp/chessmate_hardware.log"
+    max_log_size: "10MB"
+    log_rotation: true
+    arduino_bridge_log_level: "INFO"
+    hardware_test_log_level: "INFO"
+    calibration_log_level: "DEBUG"
+    safety_log_level: "WARN"
+
+    # Development Settings
+    mock_response_delay: 0.1  # seconds
+    enable_debug_topics: false
+    verbose_command_logging: false
+    simulate_hardware_errors: false
+    monitor_performance: false
+    performance_log_interval: 10.0  # seconds
+
+
+    # Integration Settings
+    ros2_domain_id: 0
+    ros2_use_sim_time: false
+    ros2_qos_reliability: "reliable"  # Options: "reliable", "best_effort"
+    ros2_qos_durability: "volatile"   # Options: "volatile", "transient_local"
+    stockfish_integration: true
+    rviz_visualization: true
+    web_interface: false
+    enable_remote_control: false
+    remote_control_port: 8080
+    security_enabled: false
+
+    # Validation Rules
+    enforce_limits: true
+    validate_on_startup: true
+    workspace_validation: true
+    collision_checking: true
+    velocity_limiting: true
+    protocol_validation: true
+    checksum_validation: false
+    timeout_validation: true
+
+# Node-specific parameters
+unified_arduino_bridge:
+  ros__parameters:
+    # Platform-specific overrides for Raspberry Pi
+    raspberry_pi_enable_gpio: true
+    raspberry_pi_lcd_sda_pin: 2
+    raspberry_pi_lcd_scl_pin: 3
+    raspberry_pi_rotary_clk_pin: 18
+    raspberry_pi_rotary_dt_pin: 19
+    raspberry_pi_rotary_sw_pin: 20
+    raspberry_pi_status_led_pin: 21
+    raspberry_pi_cpu_governor: "performance"
+    raspberry_pi_enable_hardware_pwm: true
+    raspberry_pi_i2c_speed: 400000
+    raspberry_pi_prefer_json: true
+    raspberry_pi_enable_hardware_serial: true
+
+    # Platform-specific overrides for Linux host
+    linux_host_use_mock_hardware: true
+    linux_host_enable_debug_topics: true
+    linux_host_verbose_logging: true
+    linux_host_high_frequency_updates: true
+    linux_host_enable_profiling: false
+    linux_host_prefer_character: true
+    linux_host_enable_usb_serial: true
+
+game_management_node:
+  ros__parameters:
+    # Inherit global parameters
+    use_global_config: true
+
+robot_animation_controller:
+  ros__parameters:
+    # Inherit global parameters
+    use_global_config: true

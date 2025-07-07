@@ -10,7 +10,13 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/launch', ['launch/hardware_nodes.launch.py']),
+        ('share/' + package_name + '/launch', [
+            'launch/hardware_nodes.launch.py',
+            'launch/unified_hardware.launch.py'
+        ]),
+        ('share/' + package_name + '/config', [
+            'config/unified_hardware_config.yaml'
+        ]),
     ],
     install_requires=[
         'setuptools',
@@ -31,6 +37,8 @@ setup(
             'rotary_encoder_node = chessmate_hardware.rotary_encoder_node:main',
             'lcd_display_node = chessmate_hardware.lcd_display_node:main',
             'arduino_communication_node = chessmate_hardware.arduino_communication_node:main',
+            'unified_arduino_bridge = chessmate_hardware.unified_arduino_bridge:main',
+            'unified_hardware_test = chessmate_hardware.unified_hardware_test:main',
             'game_management_node = chessmate_hardware.game_management_node:main',
             'robot_animation_controller = chessmate_hardware.robot_animation_controller:main',
         ],

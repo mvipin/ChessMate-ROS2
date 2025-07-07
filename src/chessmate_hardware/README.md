@@ -68,10 +68,13 @@ Use the provided launch file to start all hardware interface nodes:
 
 ```bash
 # For development (mock hardware)
-ros2 launch chessmate_hardware hardware_nodes.launch.py use_real_hardware:=false
+ros2 launch chessmate_hardware unified_hardware.launch.py hardware_mode:=mock
 
 # For real hardware (Raspberry Pi)
-ros2 launch chessmate_hardware hardware_nodes.launch.py use_real_hardware:=true
+ros2 launch chessmate_hardware unified_hardware.launch.py hardware_mode:=real
+
+# Legacy launch file (still available)
+ros2 launch chessmate_hardware hardware_nodes.launch.py use_real_hardware:=false
 ```
 
 ### Individual Node Usage
@@ -132,7 +135,7 @@ Run the integration test to verify all components work together:
 
 ```bash
 # Start hardware nodes first
-ros2 launch chessmate_hardware hardware_nodes.launch.py use_real_hardware:=false
+ros2 launch chessmate_hardware unified_hardware.launch.py hardware_mode:=mock
 
 # In another terminal, run the test
 python3 src/chessmate_hardware/scripts/test_hardware_integration.py
@@ -143,7 +146,7 @@ Run the interactive demo to see the complete user interaction flow:
 
 ```bash
 # Start hardware nodes first
-ros2 launch chessmate_hardware hardware_nodes.launch.py use_real_hardware:=false
+ros2 launch chessmate_hardware unified_hardware.launch.py hardware_mode:=mock
 
 # In another terminal, run the demo
 python3 src/chessmate_hardware/scripts/demo_hardware_integration.py
