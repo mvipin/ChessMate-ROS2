@@ -206,29 +206,34 @@ class IntegrationValidator:
             with open(config_file, 'r') as f:
                 config = yaml.safe_load(f)
             
-            # Check for required configuration sections
-            required_sections = [
-                'platform',
-                'serial',
-                'protocol',
-                'hardware',
-                'publishing',
-                'platform_overrides'
+            # Check for ROS 2 parameter structure
+            if '/**' not in config or 'ros__parameters' not in config['/**']:
+                print("   Missing ROS 2 parameter structure")
+                return False
+
+            ros_params = config['/**']['ros__parameters']
+
+            # Check for required configuration parameters
+            required_params = [
+                'platform_auto_detect',
+                'hardware_mode',
+                'serial_chessboard_port',
+                'serial_robot_port',
+                'chessboard_protocol',
+                'robot_protocol'
             ]
-            
-            for section in required_sections:
-                if section not in config:
-                    print(f"   Missing config section: {section}")
+
+            for param in required_params:
+                if param not in ros_params:
+                    print(f"   Missing config parameter: {param}")
                     return False
-            
-            # Check platform overrides
-            if 'raspberry_pi' not in config['platform_overrides']:
-                print("   Missing Raspberry Pi platform override")
-                return False
-            
-            if 'linux_host' not in config['platform_overrides']:
-                print("   Missing Linux host platform override")
-                return False
+
+            # Check for node-specific configurations
+            node_configs = ['unified_arduino_bridge', 'game_management_node', 'robot_animation_controller']
+            for node_config in node_configs:
+                if node_config in config and 'ros__parameters' not in config[node_config]:
+                    print(f"   Missing ros__parameters in {node_config}")
+                    return False
             
         except yaml.YAMLError as e:
             print(f"   YAML parsing error: {e}")

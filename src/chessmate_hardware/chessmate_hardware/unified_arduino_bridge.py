@@ -41,9 +41,7 @@ class ArduinoType(Enum):
 
 class ProtocolType(Enum):
     """Communication protocol types"""
-    CHARACTER_BASED = 0  # Simple character commands (existing robot firmware)
-    JSON_BASED = 1       # JSON protocol (Raspberry Pi implementation)
-    AUTO_DETECT = 2      # Auto-detect protocol based on Arduino response
+    CHARACTER_BASED = 0  # Simple character commands (reliable and simple)
 
 
 class MockSerial:
@@ -56,7 +54,7 @@ class MockSerial:
         self.in_waiting = 0
         
     def write(self, data):
-        print(f"MOCK SERIAL [{self.port}] TX: {data.decode().strip()}")
+        # print(f"MOCK SERIAL [{self.port}] TX: {data.decode().strip()}")  # Commented out for cleaner logs
         return len(data)
         
     def read(self, size=1):
@@ -89,7 +87,7 @@ class UnifiedArduinoBridge(Node):
                 ('robot_port', '/dev/ttyUSB1'),
                 ('baud_rate', 9600),
                 ('timeout', 2.0),
-                ('use_mock_serial', True),
+                ('use_mock_hardware', False),
                 
                 # Protocol configuration
                 ('chessboard_protocol', 'character'),  # 'character', 'json', 'auto'
@@ -119,7 +117,7 @@ class UnifiedArduinoBridge(Node):
         self.robot_port = self.get_parameter('robot_port').value
         self.baud_rate = self.get_parameter('baud_rate').value
         self.timeout = self.get_parameter('timeout').value
-        self.use_mock_serial = self.get_parameter('use_mock_serial').value
+        self.use_mock_hardware = self.get_parameter('use_mock_hardware').value
         
         self.chessboard_protocol = self.get_parameter('chessboard_protocol').value
         self.robot_protocol = self.get_parameter('robot_protocol').value
@@ -193,7 +191,7 @@ class UnifiedArduinoBridge(Node):
             try:
                 self.get_logger().info(f'Connecting to {arduino_type.name} on {port}')
                 
-                if self.use_mock_serial:
+                if self.use_mock_hardware:
                     serial_conn = MockSerial(port, self.baud_rate, self.timeout)
                     self.get_logger().info(f'Using mock serial for {arduino_type.name}')
                 else:
@@ -223,7 +221,7 @@ class UnifiedArduinoBridge(Node):
                 
             except Exception as e:
                 self.get_logger().error(f'Failed to connect to {arduino_type.name}: {e}')
-                if not self.use_mock_serial:
+                if not self.use_mock_hardware:
                     # Fall back to mock serial
                     self.serial_connections[arduino_type] = MockSerial(port, self.baud_rate)
                     self.protocol_types[arduino_type] = ProtocolType.CHARACTER_BASED
@@ -231,46 +229,22 @@ class UnifiedArduinoBridge(Node):
     
     def _detect_protocol(self, arduino_type: ArduinoType, preference: str) -> ProtocolType:
         """
-        Detect Arduino communication protocol
-        
+        Detect Arduino communication protocol - Character only
+
         Args:
             arduino_type: Type of Arduino controller
-            preference: Preferred protocol ('character', 'json', 'auto')
-            
+            preference: Protocol preference (only 'character' supported)
+
         Returns:
-            Detected protocol type
+            Always returns CHARACTER_BASED protocol
         """
-        if preference == 'character':
-            return ProtocolType.CHARACTER_BASED
-        elif preference == 'json':
-            return ProtocolType.JSON_BASED
-        elif preference == 'auto':
-            # Try JSON first, fall back to character
-            if self._test_json_protocol(arduino_type):
-                return ProtocolType.JSON_BASED
-            else:
-                return ProtocolType.CHARACTER_BASED
-        else:
-            self.get_logger().warn(f'Unknown protocol preference: {preference}')
-            return ProtocolType.CHARACTER_BASED
+        # Only character protocol is supported now
+        if preference != 'character':
+            self.get_logger().info(f'Only character protocol supported, ignoring preference: {preference}')
+
+        return ProtocolType.CHARACTER_BASED
     
-    def _test_json_protocol(self, arduino_type: ArduinoType) -> bool:
-        """Test if Arduino supports JSON protocol"""
-        try:
-            # Send a simple JSON ping command
-            test_command = json.dumps({"cmd": "ping", "id": 1})
-            response = self._send_command_direct(arduino_type, test_command)
-            
-            if response:
-                try:
-                    json.loads(response)
-                    return True
-                except json.JSONDecodeError:
-                    return False
-            return False
-            
-        except Exception:
-            return False
+    # JSON protocol support removed - character protocol only
 
     def _communication_loop(self, arduino_type: ArduinoType):
         """Main communication loop for Arduino controller"""
@@ -379,31 +353,10 @@ class UnifiedArduinoBridge(Node):
 
         self.get_logger().debug(f"Received from {arduino_type.name}: {response}")
 
-        protocol_type = self.protocol_types.get(arduino_type, ProtocolType.CHARACTER_BASED)
+        # Only character protocol is supported
+        self._process_character_response(response, arduino_type)
 
-        if protocol_type == ProtocolType.JSON_BASED:
-            self._process_json_response(response, arduino_type)
-        else:
-            self._process_character_response(response, arduino_type)
-
-    def _process_json_response(self, response: str, arduino_type: ArduinoType):
-        """Process JSON response from Arduino"""
-        try:
-            data = json.loads(response)
-
-            # Handle different response types
-            if data.get('status') == 'ok':
-                # Successful command response
-                if 'data' in data:
-                    self._handle_sensor_data(data['data'], arduino_type)
-            elif data.get('status') == 'error':
-                self.get_logger().error(f"Arduino error: {data.get('error', 'Unknown error')}")
-            else:
-                # Handle other JSON responses (sensor data, status updates)
-                self._handle_sensor_data(data, arduino_type)
-
-        except json.JSONDecodeError as e:
-            self.get_logger().warn(f"Invalid JSON response: {response} - {e}")
+    # JSON response processing removed - character protocol only
 
     def _process_character_response(self, response: str, arduino_type: ArduinoType):
         """Process character-based response from Arduino"""
@@ -474,12 +427,8 @@ class UnifiedArduinoBridge(Node):
         """Handle Arduino command messages"""
         try:
             arduino_type = ArduinoType(msg.target_arduino)
-            protocol_type = self.protocol_types.get(arduino_type, ProtocolType.CHARACTER_BASED)
-
-            if protocol_type == ProtocolType.JSON_BASED:
-                command_str = self._format_json_command(msg, arduino_type)
-            else:
-                command_str = self._format_character_command(msg, arduino_type)
+            # Only character protocol is supported
+            command_str = self._format_character_command(msg, arduino_type)
 
             if command_str:
                 self.command_queues[arduino_type].put(command_str)
@@ -500,26 +449,20 @@ class UnifiedArduinoBridge(Node):
                 self.get_logger().warn("Joint command ignored - system not calibrated")
                 return
 
-            # Create JSON command for joint movement
-            joint_data = {
-                "cmd": "move_joints",
-                "params": {},
-                "id": int(time.time() * 1000) % 10000  # Simple ID generation
-            }
-
-            # Map joint positions
+            # Create character command for joint movement
+            # For character protocol, we'll use a simple move command
+            # The Arduino stub will simulate the movement
             if len(msg.positions) >= 3:
-                joint_data["params"]["j1"] = msg.positions[0]
-                joint_data["params"]["j2"] = msg.positions[1]
-                joint_data["params"]["z"] = msg.positions[2]
+                # For now, send a simple move command to indicate joint movement
+                # The Arduino stub will handle this as a generic movement
+                command_str = f"move_{int(msg.positions[0]*100)}_{int(msg.positions[1]*100)}_{int(msg.positions[2]*100)}"
+                # Limit command length for character protocol
+                if len(command_str) > 10:
+                    command_str = "move"  # Fallback to simple move command
+            else:
+                command_str = "move"  # Simple move command
 
-            # Add velocity and safety parameters
-            if msg.velocities:
-                joint_data["params"]["velocity_scaling"] = msg.velocity_scaling
-
-            command_str = json.dumps(joint_data)
-
-            # Send to robot controller (assuming it supports JSON for precise control)
+            # Send to robot controller (character protocol)
             arduino_type = ArduinoType.ROBOT_CONTROLLER
             if arduino_type in self.command_queues:
                 self.command_queues[arduino_type].put(command_str)
@@ -535,74 +478,23 @@ class UnifiedArduinoBridge(Node):
         if self.emergency_stop:
             self.get_logger().warn("EMERGENCY STOP ACTIVATED")
 
-            # Send emergency stop to all controllers
+            # Send emergency stop to all controllers (character protocol only)
             for arduino_type in ArduinoType:
-                protocol_type = self.protocol_types.get(arduino_type, ProtocolType.CHARACTER_BASED)
-
-                if protocol_type == ProtocolType.JSON_BASED:
-                    estop_cmd = json.dumps({
-                        "cmd": "emergency_stop",
-                        "params": {"active": True},
-                        "id": int(time.time() * 1000) % 10000
-                    })
-                else:
-                    estop_cmd = "STOP"  # Simple character command
+                estop_cmd = "STOP"  # Simple character command
 
                 if arduino_type in self.command_queues:
                     self.command_queues[arduino_type].put(estop_cmd)
         else:
             self.get_logger().info("Emergency stop released")
 
-            # Send release command to all controllers
+            # Send release command to all controllers (character protocol only)
             for arduino_type in ArduinoType:
-                protocol_type = self.protocol_types.get(arduino_type, ProtocolType.CHARACTER_BASED)
-
-                if protocol_type == ProtocolType.JSON_BASED:
-                    release_cmd = json.dumps({
-                        "cmd": "emergency_stop",
-                        "params": {"active": False},
-                        "id": int(time.time() * 1000) % 10000
-                    })
-                else:
-                    release_cmd = "RESUME"  # Simple character command
+                release_cmd = "RESUME"  # Simple character command
 
                 if arduino_type in self.command_queues:
                     self.command_queues[arduino_type].put(release_cmd)
 
-    def _format_json_command(self, msg: ArduinoCommand, arduino_type: ArduinoType) -> str:
-        """Format Arduino command as JSON"""
-        try:
-            # Map ArduinoCommand types to JSON commands
-            json_command_map = {
-                ArduinoCommand.CMD_ROBOT_WAKE_UP: "wake_up",
-                ArduinoCommand.CMD_ROBOT_DOZE_OFF: "doze_off",
-                ArduinoCommand.CMD_ROBOT_HOME_Z: "home_z",
-                ArduinoCommand.CMD_ROBOT_HOME_ALL: "home_all",
-                ArduinoCommand.CMD_ROBOT_EXECUTE_MOVE: "execute_move",
-                ArduinoCommand.CMD_OCCUPANCY: "get_occupancy",
-                ArduinoCommand.CMD_STATUS: "get_status",
-            }
-
-            cmd_name = json_command_map.get(msg.command_type, "unknown")
-
-            json_cmd = {
-                "cmd": cmd_name,
-                "id": int(time.time() * 1000) % 10000
-            }
-
-            # Add parameters if available
-            if msg.data:
-                if msg.command_type == ArduinoCommand.CMD_ROBOT_EXECUTE_MOVE:
-                    # Parse move data for JSON format
-                    json_cmd["params"] = {"move": msg.data}
-                else:
-                    json_cmd["params"] = {"data": msg.data}
-
-            return json.dumps(json_cmd)
-
-        except Exception as e:
-            self.get_logger().error(f"Error formatting JSON command: {e}")
-            return ""
+    # JSON command formatting removed - character protocol only
 
     def _format_character_command(self, msg: ArduinoCommand, arduino_type: ArduinoType) -> str:
         """Format Arduino command as character-based command"""
@@ -682,22 +574,14 @@ class UnifiedArduinoBridge(Node):
         try:
             self.get_logger().info(f"Starting calibration: {request.calibration_type}")
 
-            # Send calibration command to robot controller
+            # Send calibration command to robot controller (character protocol only)
             arduino_type = ArduinoType.ROBOT_CONTROLLER
-            protocol_type = self.protocol_types.get(arduino_type, ProtocolType.CHARACTER_BASED)
 
-            if protocol_type == ProtocolType.JSON_BASED:
-                calibrate_cmd = json.dumps({
-                    "cmd": "calibrate",
-                    "params": {
-                        "type": request.calibration_type,
-                        "use_limit_switches": request.use_limit_switches,
-                        "speed": request.calibration_speed
-                    },
-                    "id": int(time.time() * 1000) % 10000
-                })
+            # Character protocol calibration
+            if request.calibration_type == "home":
+                calibrate_cmd = "z"  # Home all axes
             else:
-                calibrate_cmd = "z"  # Simple home command for character protocol
+                calibrate_cmd = "j"  # Home Z only
 
             if arduino_type in self.command_queues:
                 self.command_queues[arduino_type].put(calibrate_cmd)
@@ -729,17 +613,9 @@ class UnifiedArduinoBridge(Node):
     def _publish_sensor_data(self):
         """Periodic sensor data publishing"""
         try:
-            # Request sensor data from controllers
+            # Request sensor data from controllers (character protocol only)
             for arduino_type in ArduinoType:
-                protocol_type = self.protocol_types.get(arduino_type, ProtocolType.CHARACTER_BASED)
-
-                if protocol_type == ProtocolType.JSON_BASED:
-                    sensor_cmd = json.dumps({
-                        "cmd": "get_position",
-                        "id": int(time.time() * 1000) % 10000
-                    })
-                else:
-                    sensor_cmd = "status"  # Simple status request
+                sensor_cmd = "status"  # Simple status request
 
                 if arduino_type in self.command_queues:
                     self.command_queues[arduino_type].put(sensor_cmd)

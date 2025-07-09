@@ -159,7 +159,7 @@ class ConfigLoader:
             'CHESSMATE_CHESSBOARD_PORT': ['serial', 'chessboard_port'],
             'CHESSMATE_ROBOT_PORT': ['serial', 'robot_port'],
             'CHESSMATE_BAUD_RATE': ['serial', 'baud_rate'],
-            'CHESSMATE_USE_MOCK': ['serial', 'use_mock_serial'],
+            'CHESSMATE_USE_MOCK': ['serial', 'use_mock_hardware'],
             'CHESSMATE_LOG_LEVEL': ['logging', 'console_level'],
             'CHESSMATE_AUTO_CALIBRATE': ['calibration', 'auto_calibrate'],
         }
@@ -211,7 +211,7 @@ class ConfigLoader:
         
         # Validate serial ports
         serial_config = self.config.get('serial', {})
-        if not serial_config.get('use_mock_serial', False):
+        if not serial_config.get('use_mock_hardware', False):
             chessboard_port = serial_config.get('chessboard_port')
             robot_port = serial_config.get('robot_port')
             
@@ -244,7 +244,7 @@ class ConfigLoader:
                 'robot_port': '/dev/ttyUSB1',
                 'baud_rate': 9600,
                 'timeout': 2.0,
-                'use_mock_serial': True
+                'use_mock_hardware': True
             },
             'protocol': {
                 'chessboard_protocol': 'character',

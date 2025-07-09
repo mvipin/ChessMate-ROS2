@@ -49,7 +49,7 @@ class ArduinoCommunicationNode(Node):
         self.declare_parameter('robot_controller_port', '/dev/ttyUSB1')
         self.declare_parameter('baud_rate', 9600)
         self.declare_parameter('timeout', 1.0)
-        self.declare_parameter('use_mock_serial', not GPIOAbstraction.is_raspberry_pi())
+        self.declare_parameter('use_mock_hardware', not GPIOAbstraction.is_raspberry_pi())
         self.declare_parameter('command_timeout', 5.0)
         self.declare_parameter('heartbeat_interval', 10.0)
 
@@ -58,7 +58,7 @@ class ArduinoCommunicationNode(Node):
         self.robot_port = self.get_parameter('robot_controller_port').value
         self.baud_rate = self.get_parameter('baud_rate').value
         self.timeout = self.get_parameter('timeout').value
-        use_mock_serial = self.get_parameter('use_mock_serial').value
+        use_mock_hardware = self.get_parameter('use_mock_hardware').value
         self.command_timeout = self.get_parameter('command_timeout').value
         self.heartbeat_interval = self.get_parameter('heartbeat_interval').value
         
@@ -66,7 +66,7 @@ class ArduinoCommunicationNode(Node):
         self.get_logger().info(f"Chessboard controller: {self.chessboard_port}, Robot controller: {self.robot_port}")
 
         # Serial connection management
-        self.use_mock_serial = use_mock_serial
+        self.use_mock_hardware = use_mock_hardware
         self.serial_connections: Dict[ArduinoType, serial.Serial] = {}
         self.command_queues: Dict[ArduinoType, queue.Queue] = {
             ArduinoType.CHESSBOARD_CONTROLLER: queue.Queue(),
@@ -144,7 +144,7 @@ class ArduinoCommunicationNode(Node):
     
     def _init_serial_connections(self):
         """Initialize serial connections to Arduino controllers"""
-        if self.use_mock_serial:
+        if self.use_mock_hardware:
             self._init_mock_serial()
         else:
             self._init_real_serial()
@@ -176,7 +176,7 @@ class ArduinoCommunicationNode(Node):
                 
         except Exception as e:
             self.get_logger().error(f"Serial initialization failed: {e}, using mock serial")
-            self.use_mock_serial = True
+            self.use_mock_hardware = True
             self._init_mock_serial()
     
     def _init_mock_serial(self):

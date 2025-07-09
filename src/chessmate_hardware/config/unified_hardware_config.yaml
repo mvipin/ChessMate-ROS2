@@ -18,9 +18,9 @@
     serial_baud_rate: 9600
     serial_timeout: 2.0
 
-    # Protocol Configuration
-    chessboard_protocol: "character"  # Options: "character", "json", "auto"
-    robot_protocol: "character"       # Options: "character", "json", "auto"
+    # Protocol Configuration (Character protocol only)
+    chessboard_protocol: "character"  # Only character protocol supported
+    robot_protocol: "character"       # Only character protocol supported
     command_terminator: "\n"
     response_timeout: 1.0
     max_retries: 3

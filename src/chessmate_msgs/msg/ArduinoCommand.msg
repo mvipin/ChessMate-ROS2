@@ -14,6 +14,8 @@ uint8 CMD_OVERRIDE_MOVE = 7
 uint8 CMD_RESET = 8
 uint8 CMD_CHECKMATE = 9
 uint8 CMD_HEARTBEAT = 10
+uint8 CMD_STATUS = 11
+uint8 CMD_CALIBRATE = 12
 
 # Robot animation commands (sent directly to robot controller)
 uint8 CMD_ROBOT_WAKE_UP = 20

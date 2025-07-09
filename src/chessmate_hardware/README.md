@@ -118,7 +118,7 @@ ros2 run chessmate_hardware game_management_node
 - `arm_controller_port`: Serial port for arm controller (default: /dev/ttyUSB1)
 - `baud_rate`: Serial communication baud rate (default: 9600)
 - `timeout`: Serial timeout in seconds (default: 1.0)
-- `use_mock_serial`: Use mock serial for development (default: auto-detect)
+- `use_mock_hardware`: Use mock hardware for development (default: auto-detect)
 - `command_timeout`: Command timeout in seconds (default: 5.0)
 - `heartbeat_interval`: Heartbeat interval in seconds (default: 10.0)
 
