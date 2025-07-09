@@ -16,6 +16,10 @@ uint8 CMD_CHECKMATE = 9
 uint8 CMD_HEARTBEAT = 10
 uint8 CMD_STATUS = 11
 uint8 CMD_CALIBRATE = 12
+uint8 CMD_LED_ON = 13
+uint8 CMD_LED_OFF = 14
+uint8 CMD_HINT_ENABLE = 15
+uint8 CMD_HINT_DISABLE = 16
 
 # Robot animation commands (sent directly to robot controller)
 uint8 CMD_ROBOT_WAKE_UP = 20

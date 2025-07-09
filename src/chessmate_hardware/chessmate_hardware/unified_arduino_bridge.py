@@ -142,11 +142,18 @@ class UnifiedArduinoBridge(Node):
             self.serial_locks[arduino_type] = threading.Lock()
             self.command_queues[arduino_type] = queue.Queue()
         
-        # Publishers
-        self.board_state_publisher = self.create_publisher(BoardState, 'board_state', 10)
-        self.joint_state_publisher = self.create_publisher(JointState, 'joint_states', 10)
-        self.sensor_publisher = self.create_publisher(SensorReading, 'sensor_readings', 10)
-        self.status_publisher = self.create_publisher(String, 'hardware_status', 10)
+        # Publishers with compatible QoS
+        from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
+        qos_profile = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE,
+            depth=10
+        )
+
+        self.board_state_publisher = self.create_publisher(BoardState, 'board_state', qos_profile)
+        self.joint_state_publisher = self.create_publisher(JointState, 'joint_states', qos_profile)
+        self.sensor_publisher = self.create_publisher(SensorReading, 'sensor_readings', qos_profile)
+        self.status_publisher = self.create_publisher(String, 'hardware_status', qos_profile)
         
         # Subscribers
         self.arduino_command_subscription = self.create_subscription(
@@ -321,7 +328,7 @@ class UnifiedArduinoBridge(Node):
                     cmd_str += '\n'
 
                 serial_conn.write(cmd_str.encode())
-                self.get_logger().debug(f"Sent to {arduino_type.name}: {cmd_str.strip()}")
+                self.get_logger().debug(f"REAL SERIAL [{arduino_type.name}] TX: {cmd_str.strip()}")
 
             except Exception as e:
                 self.get_logger().error(f"Send command error for {arduino_type.name}: {e}")
@@ -340,6 +347,8 @@ class UnifiedArduinoBridge(Node):
         try:
             if hasattr(serial_conn, 'readline'):
                 response = serial_conn.readline().decode('utf-8', errors='ignore').strip()
+                if response:
+                    self.get_logger().debug(f"REAL SERIAL RX: '{response}'")
                 return response if response else None
             return None
         except Exception as e:
@@ -372,8 +381,51 @@ class UnifiedArduinoBridge(Node):
         # Handle robot controller responses
         elif arduino_type == ArduinoType.ROBOT_CONTROLLER:
             # Simple acknowledgment or status responses
-            if response in ['i', 'j', 's', 'z']:
+            if response in ['i', 'j', 's', 'z', 'OK']:
                 self.get_logger().debug(f"Robot controller acknowledged: {response}")
+
+            # Handle status responses
+            elif response.startswith('STATUS:'):
+                status = response.split(':', 1)[1]
+                self.get_logger().debug(f"Robot status: {status}")
+                # Could publish robot status here
+
+            # Handle position feedback
+            elif response.startswith('POS:'):
+                pos_data = response.split(':', 1)[1]
+                try:
+                    positions = [float(x) for x in pos_data.split(',')]
+                    if len(positions) >= 3:
+                        self._publish_joint_state(positions)
+                        self.get_logger().info(f"Published joint position: {positions[:3]}")
+                except ValueError as e:
+                    self.get_logger().warn(f"Invalid position data: {pos_data}")
+
+        # Handle chessboard controller responses
+        elif arduino_type == ArduinoType.CHESSBOARD_CONTROLLER:
+            if response in ['OK']:
+                self.get_logger().debug(f"Chessboard controller acknowledged: {response}")
+            elif response.startswith('BOARD:'):
+                board_data = response.split(':', 1)[1]
+                self._publish_board_state(board_data)
+
+    def _publish_joint_state(self, positions: list):
+        """Publish joint state from position data"""
+        try:
+            joint_state = JointState()
+            joint_state.header.stamp = self.get_clock().now().to_msg()
+            joint_state.name = ['joint1', 'joint2', 'z_axis']
+            joint_state.position = positions[:3]  # Take first 3 positions
+
+            # Add empty velocities and efforts
+            joint_state.velocity = [0.0] * len(joint_state.position)
+            joint_state.effort = [0.0] * len(joint_state.position)
+
+            self.joint_state_publisher.publish(joint_state)
+            self.get_logger().info(f"BRIDGE: Published to joint_states topic: {positions[:3]}")
+
+        except Exception as e:
+            self.get_logger().error(f"Error publishing joint state: {e}")
 
     def _handle_sensor_data(self, data: dict, arduino_type: ArduinoType):
         """Handle sensor data from Arduino"""
@@ -456,9 +508,9 @@ class UnifiedArduinoBridge(Node):
                 # For now, send a simple move command to indicate joint movement
                 # The Arduino stub will handle this as a generic movement
                 command_str = f"move_{int(msg.positions[0]*100)}_{int(msg.positions[1]*100)}_{int(msg.positions[2]*100)}"
-                # Limit command length for character protocol
-                if len(command_str) > 10:
-                    command_str = "move"  # Fallback to simple move command
+                # Allow longer commands for move_X_Y_Z format (up to 20 characters)
+                if len(command_str) > 20:
+                    command_str = "move"  # Fallback only for very long commands
             else:
                 command_str = "move"  # Simple move command
 
@@ -467,6 +519,7 @@ class UnifiedArduinoBridge(Node):
             if arduino_type in self.command_queues:
                 self.command_queues[arduino_type].put(command_str)
                 self.get_logger().info(f"Sent joint command: {command_str}")
+                self.get_logger().info(f"DEBUG: Command sent to Arduino: '{command_str}'")
 
         except Exception as e:
             self.get_logger().error(f"Error processing joint command: {e}")

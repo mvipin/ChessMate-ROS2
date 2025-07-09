@@ -41,15 +41,22 @@ class UnifiedHardwareTest(Node):
         self.arduino_cmd_pub = self.create_publisher(ArduinoCommand, 'arduino_command', 10)
         self.estop_pub = self.create_publisher(Bool, 'emergency_stop', 10)
         
-        # Subscribers
+        # Subscribers with compatible QoS
+        from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
+        qos_profile = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE,
+            depth=10
+        )
+
         self.joint_state_sub = self.create_subscription(
-            JointState, 'joint_states', self.joint_state_callback, 10)
+            JointState, 'joint_states', self.joint_state_callback, qos_profile)
         self.sensor_sub = self.create_subscription(
-            SensorReading, 'sensor_readings', self.sensor_callback, 10)
+            SensorReading, 'sensor_readings', self.sensor_callback, qos_profile)
         self.board_state_sub = self.create_subscription(
-            BoardState, 'board_state', self.board_state_callback, 10)
+            BoardState, 'board_state', self.board_state_callback, qos_profile)
         self.status_sub = self.create_subscription(
-            String, 'hardware_status', self.status_callback, 10)
+            String, 'hardware_status', self.status_callback, qos_profile)
         
         # Service clients
         self.calibrate_client = self.create_client(CalibrateArm, 'calibrate_arm')
@@ -66,7 +73,9 @@ class UnifiedHardwareTest(Node):
     def joint_state_callback(self, msg):
         """Track joint state updates"""
         self.last_joint_state = msg
-        self.get_logger().debug(f'Joint state: {msg.position}')
+        self.joint_state_count = getattr(self, 'joint_state_count', 0) + 1
+        if self.joint_state_count <= 5 or self.joint_state_count % 10 == 0:  # Log first 5 and every 10th
+            self.get_logger().info(f'TEST: Received joint state #{self.joint_state_count}: {list(msg.position)}')
 
     def sensor_callback(self, msg):
         """Track sensor readings"""
@@ -196,22 +205,57 @@ class UnifiedHardwareTest(Node):
                 cmd.velocity_scaling = 0.5
                 cmd.acceleration_scaling = 0.5
                 
+                # Store initial position for comparison
+                initial_position = None
+                if self.last_joint_state:
+                    initial_position = list(self.last_joint_state.position)
+
                 # Send command
                 self.joint_cmd_pub.publish(cmd)
-                
-                # Wait for movement
-                time.sleep(4.0)
+
+                # Wait for movement with active spinning to process callbacks
+                import rclpy
+                for i in range(40):  # 4 seconds with 0.1s intervals
+                    rclpy.spin_once(self, timeout_sec=0.1)
+                    time.sleep(0.1)
+
+                # Wait for position updates (don't clear joint state)
+                updated_position = None
+                for i in range(20):  # Wait up to 2 more seconds for updates
+                    rclpy.spin_once(self, timeout_sec=0.05)  # Process callbacks
+                    if self.last_joint_state:
+                        current_pos = list(self.last_joint_state.position)
+                        # Check if position has changed significantly from initial
+                        if initial_position is None or any(abs(current_pos[j] - initial_position[j]) > 0.001 for j in range(min(len(current_pos), len(initial_position)))):
+                            updated_position = current_pos
+                            break
+                    time.sleep(0.1)
                 
                 # Check feedback
-                if self.last_joint_state:
-                    actual_pos = self.last_joint_state.position
+                if updated_position:
+                    actual_pos = updated_position
                     self.get_logger().info(f'    Commanded: {position}')
-                    self.get_logger().info(f'    Actual: {list(actual_pos) if actual_pos else "None"}')
-                    
+                    self.get_logger().info(f'    Actual: {actual_pos}')
+
                     # Simple position check (within reasonable tolerance)
-                    if actual_pos and len(actual_pos) >= 3:
+                    if len(actual_pos) >= 3:
                         pos_error = sum(abs(a - c) for a, c in zip(actual_pos[:3], position))
                         if pos_error < 0.1:  # 0.1 rad/m tolerance
+                            self.get_logger().info('    ✅ Position reached successfully')
+                            success_count += 1
+                        else:
+                            self.get_logger().warn(f'    ⚠️  Position error: {pos_error:.3f}')
+                    else:
+                        self.get_logger().warn('    ⚠️  Invalid position data')
+                elif self.last_joint_state:
+                    # We have joint state but no movement detected
+                    actual_pos = self.last_joint_state.position
+                    self.get_logger().info(f'    Commanded: {position}')
+                    self.get_logger().info(f'    Actual: {list(actual_pos)} (no movement detected)')
+
+                    if actual_pos and len(actual_pos) >= 3:
+                        pos_error = sum(abs(a - c) for a, c in zip(actual_pos[:3], position))
+                        if pos_error < 0.1:
                             self.get_logger().info('    ✅ Position reached successfully')
                             success_count += 1
                         else:
@@ -353,7 +397,24 @@ class UnifiedHardwareTest(Node):
 
         # Wait for system to be ready
         self.get_logger().info('⏳ Waiting for system initialization...')
-        time.sleep(3.0)
+        time.sleep(8.0)  # Increased wait time for full system startup
+
+        # Check topic discovery
+        self.get_logger().info('🔍 Checking topic discovery...')
+        topic_names = self.get_topic_names_and_types()
+        joint_states_found = any('joint_states' in topic for topic, _ in topic_names)
+        self.get_logger().info(f'📡 Available topics: {[topic for topic, _ in topic_names]}')
+        self.get_logger().info(f'🤖 joint_states topic found: {joint_states_found}')
+
+        # Verify we can receive joint states
+        self.get_logger().info('🔍 Verifying joint state subscription...')
+        for i in range(50):  # Wait up to 5 seconds for first joint state
+            if self.last_joint_state:
+                self.get_logger().info(f'✅ Joint state subscription working: {self.last_joint_state.position}')
+                break
+            time.sleep(0.1)
+        else:
+            self.get_logger().warn('⚠️ No joint states received during initialization')
 
         # Test 1: Arduino Communication
         test_results['arduino_communication'] = self.test_arduino_communication()
