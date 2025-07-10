@@ -2,12 +2,12 @@
 """
 Unified Arduino Bridge Node for ChessMate Hardware Interface
 
-Combines the JSON-based Arduino Bridge from Raspberry Pi with the character-based
-Arduino Communication Node from Linux host. Supports both protocols and provides
-hardware abstraction for cross-platform compatibility.
+Character-based Arduino communication bridge providing unified ROS 2 interface
+for both chessboard and robot controller Arduinos. Supports cross-platform
+hardware abstraction for development and deployment.
 
 Features:
-- Dual protocol support (JSON for precise control, character commands for game actions)
+- Character-based protocol for reliable Arduino communication
 - Auto-detection of Arduino capabilities
 - Hardware safety and calibration services
 - Sensor data publishing
@@ -20,7 +20,6 @@ from rclpy.parameter import Parameter
 import serial
 import threading
 import time
-import json
 import queue
 from enum import Enum
 from std_msgs.msg import String, Bool
@@ -72,7 +71,7 @@ class MockSerial:
 
 class UnifiedArduinoBridge(Node):
     """
-    Unified Arduino Bridge supporting both JSON and character-based protocols
+    Unified Arduino Bridge supporting character-based protocol only
     """
     
     def __init__(self):
@@ -89,9 +88,9 @@ class UnifiedArduinoBridge(Node):
                 ('timeout', 2.0),
                 ('use_mock_hardware', False),
                 
-                # Protocol configuration
-                ('chessboard_protocol', 'character'),  # 'character', 'json', 'auto'
-                ('robot_protocol', 'character'),       # 'character', 'json', 'auto'
+                # Protocol configuration (character-based only)
+                ('chessboard_protocol', 'character'),  # character protocol only
+                ('robot_protocol', 'character'),       # character protocol only
                 ('command_terminator', '\n'),
                 ('response_timeout', 1.0),
                 ('max_retries', 3),
@@ -490,7 +489,7 @@ class UnifiedArduinoBridge(Node):
             self.get_logger().error(f"Error processing Arduino command: {e}")
 
     def _joint_command_callback(self, msg: JointCommand):
-        """Handle joint command messages (JSON protocol)"""
+        """Handle joint command messages (character protocol)"""
         try:
             # Safety checks
             if self.emergency_stop:

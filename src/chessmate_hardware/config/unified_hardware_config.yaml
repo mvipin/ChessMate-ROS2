@@ -25,11 +25,7 @@
     response_timeout: 1.0
     max_retries: 3
 
-    # JSON protocol settings
-    json_pretty_print: false
-    json_include_timestamps: true
-    json_command_id_min: 1
-    json_command_id_max: 9999
+
 
     # Character protocol settings
     character_single_char_commands: true
@@ -149,7 +145,7 @@ unified_arduino_bridge:
     raspberry_pi_cpu_governor: "performance"
     raspberry_pi_enable_hardware_pwm: true
     raspberry_pi_i2c_speed: 400000
-    raspberry_pi_prefer_json: true
+
     raspberry_pi_enable_hardware_serial: true
 
     # Platform-specific overrides for Linux host
