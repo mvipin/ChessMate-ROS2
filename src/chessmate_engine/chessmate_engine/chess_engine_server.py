@@ -59,7 +59,7 @@ class ChessEngineServer(Node):
     def get_best_move_callback(self, request, response):
         """Handle GetBestMove service requests"""
         try:
-            self.get_logger().info(f"GetBestMove request: {request.fen_string[:20]}...")
+            self.get_logger().debug(f"GetBestMove request: {request.fen_string[:20]}...")
             
             # Configure engine based on difficulty
             if request.difficulty_level:
@@ -107,7 +107,7 @@ class ChessEngineServer(Node):
     def evaluate_position_callback(self, request, response):
         """Handle EvaluatePosition service requests"""
         try:
-            self.get_logger().info(f"EvaluatePosition request: {request.fen_string[:20]}...")
+            self.get_logger().debug(f"EvaluatePosition request: {request.fen_string[:20]}...")
             
             analysis = self.stockfish.evaluate_position(
                 request.fen_string, request.analysis_time)
@@ -150,7 +150,7 @@ class ChessEngineServer(Node):
     def validate_move_callback(self, request, response):
         """Handle ValidateMove service requests"""
         try:
-            self.get_logger().info(f"ValidateMove request: {request.proposed_move.from_square}->{request.proposed_move.to_square}")
+            self.get_logger().debug(f"ValidateMove request: {request.proposed_move.from_square}->{request.proposed_move.to_square}")
             
             # Convert ChessMove to UCI
             uci_move = self.converter.chess_move_to_uci(request.proposed_move)

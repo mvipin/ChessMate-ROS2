@@ -202,7 +202,7 @@ class RobotAnimationController(Node):
             self.arduino_command_publisher.publish(cmd)
             self.current_animation = animation_type
             
-            self.get_logger().info(f"Sent robot animation command: {animation_type}")
+            self.get_logger().debug(f"Sent robot animation command: {animation_type}")
             
         except Exception as e:
             self.get_logger().error(f"Error sending robot animation: {e}")
@@ -221,7 +221,7 @@ class RobotAnimationController(Node):
             self.arduino_command_publisher.publish(cmd)
             self.pending_move = move_str
             
-            self.get_logger().info(f"Sent robot move command: {move_str}")
+            self.get_logger().debug(f"Sent robot move command: {move_str}")
             
         except Exception as e:
             self.get_logger().error(f"Error sending robot move: {e}")

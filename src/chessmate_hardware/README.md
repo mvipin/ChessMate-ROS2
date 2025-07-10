@@ -73,6 +73,10 @@ ros2 launch chessmate_hardware unified_hardware.launch.py platform:=linux_host h
 # For real hardware (Raspberry Pi)
 ros2 launch chessmate_hardware unified_hardware.launch.py platform:=raspberry_pi hardware_mode:=real
 
+# With different log levels (debug, info, warn, error)
+ros2 launch chessmate_hardware unified_hardware.launch.py platform:=raspberry_pi hardware_mode:=real log_level:=DEBUG
+ros2 launch chessmate_hardware unified_hardware.launch.py platform:=raspberry_pi hardware_mode:=real log_level:=ERROR
+
 # Legacy launch file (still available)
 ros2 launch chessmate_hardware hardware_nodes.launch.py use_real_hardware:=false
 ```
@@ -151,6 +155,30 @@ ros2 launch chessmate_hardware unified_hardware.launch.py hardware_mode:=mock
 # In another terminal, run the demo
 python3 src/chessmate_hardware/scripts/demo_hardware_integration.py
 ```
+
+## Logging Control
+
+The launch system supports comprehensive logging control:
+
+### Log Levels
+- **DEBUG**: Detailed diagnostic information (most verbose)
+- **INFO**: General operational information (default)
+- **WARN**: Warnings and potential issues
+- **ERROR**: Errors and failures only
+
+### Usage Examples
+```bash
+# Normal operation (INFO level)
+ros2 launch chessmate_hardware unified_hardware.launch.py platform:=raspberry_pi hardware_mode:=real
+
+# Debug mode (verbose logging for troubleshooting)
+ros2 launch chessmate_hardware unified_hardware.launch.py platform:=raspberry_pi hardware_mode:=real log_level:=DEBUG
+
+# Quiet mode (errors and warnings only)
+ros2 launch chessmate_hardware unified_hardware.launch.py platform:=raspberry_pi hardware_mode:=real log_level:=ERROR
+```
+
+**Note**: The launch system always shows `"[INFO] [launch]: Default logging verbosity is set to INFO"` - this is the ROS 2 launch system's own logging level, not your nodes' log levels.
 
 ## Hardware Abstraction
 

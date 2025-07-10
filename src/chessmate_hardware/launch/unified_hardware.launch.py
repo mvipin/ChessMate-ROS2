@@ -18,6 +18,10 @@ Usage:
 
   # For development machine with mock hardware
   ros2 launch chessmate_hardware unified_hardware.launch.py platform:=linux_host hardware_mode:=mock
+
+  # With different log levels
+  ros2 launch chessmate_hardware unified_hardware.launch.py platform:=raspberry_pi hardware_mode:=real log_level:=DEBUG
+  ros2 launch chessmate_hardware unified_hardware.launch.py platform:=raspberry_pi hardware_mode:=real log_level:=ERROR
 """
 
 import os

@@ -397,7 +397,7 @@ class UnifiedArduinoBridge(Node):
                     positions = [float(x) for x in pos_data.split(',')]
                     if len(positions) >= 3:
                         self._publish_joint_state(positions)
-                        self.get_logger().info(f"Published joint position: {positions[:3]}")
+                        self.get_logger().debug(f"Published joint position: {positions[:3]}")
                 except ValueError as e:
                     self.get_logger().warn(f"Invalid position data: {pos_data}")
 
@@ -422,7 +422,7 @@ class UnifiedArduinoBridge(Node):
             joint_state.effort = [0.0] * len(joint_state.position)
 
             self.joint_state_publisher.publish(joint_state)
-            self.get_logger().info(f"BRIDGE: Published to joint_states topic: {positions[:3]}")
+            self.get_logger().debug(f"Published joint state: {positions[:3]}")
 
         except Exception as e:
             self.get_logger().error(f"Error publishing joint state: {e}")
@@ -519,7 +519,7 @@ class UnifiedArduinoBridge(Node):
             if arduino_type in self.command_queues:
                 self.command_queues[arduino_type].put(command_str)
                 self.get_logger().info(f"Sent joint command: {command_str}")
-                self.get_logger().info(f"DEBUG: Command sent to Arduino: '{command_str}'")
+                self.get_logger().debug(f"Command sent to Arduino: '{command_str}'")
 
         except Exception as e:
             self.get_logger().error(f"Error processing joint command: {e}")
@@ -609,7 +609,7 @@ class UnifiedArduinoBridge(Node):
             command_name = command_map.get(msg.command_type, "unknown")
 
             if command_name == "unknown":
-                self.get_logger().warning(f"Unknown chessboard command type: {msg.command_type}")
+                self.get_logger().warn(f"Unknown chessboard command type: {msg.command_type}")
                 return ""
 
             # Format command with data if available
