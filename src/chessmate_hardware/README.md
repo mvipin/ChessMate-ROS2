@@ -67,11 +67,11 @@ chessmate_hardware/
 Use the provided launch file to start all hardware interface nodes:
 
 ```bash
-# For development (mock hardware)
-ros2 launch chessmate_hardware unified_hardware.launch.py hardware_mode:=mock
+# For development (mock hardware on Linux host)
+ros2 launch chessmate_hardware unified_hardware.launch.py platform:=linux_host hardware_mode:=mock
 
 # For real hardware (Raspberry Pi)
-ros2 launch chessmate_hardware unified_hardware.launch.py hardware_mode:=real
+ros2 launch chessmate_hardware unified_hardware.launch.py platform:=raspberry_pi hardware_mode:=real
 
 # Legacy launch file (still available)
 ros2 launch chessmate_hardware hardware_nodes.launch.py use_real_hardware:=false
@@ -159,7 +159,7 @@ The package includes a comprehensive hardware abstraction layer that allows the 
 1. **Development machines** - Uses mock GPIO and serial interfaces
 2. **Raspberry Pi** - Uses real GPIO and hardware interfaces
 
-The abstraction automatically detects the environment and switches between real and mock hardware accordingly.
+The abstraction switches between real and mock hardware based on user-specified platform and hardware mode parameters.
 
 ### Mock Hardware Features
 - **Mock GPIO**: Simulates rotary encoder events and button presses

@@ -2,15 +2,22 @@
 """
 Unified Hardware Launch File for ChessMate
 
-Cross-platform launch configuration that automatically detects the platform
-and launches appropriate nodes for Linux host or Raspberry Pi deployment.
+Cross-platform launch configuration for Linux host or Raspberry Pi deployment.
+User must explicitly specify the platform and hardware mode.
 
 Features:
-- Automatic platform detection
+- User-specified platform and hardware mode
 - Conditional node launching based on platform
 - Unified parameter loading
 - Hardware testing integration
 - Mock mode support for development
+
+Usage:
+  # For Raspberry Pi with real hardware
+  ros2 launch chessmate_hardware unified_hardware.launch.py platform:=raspberry_pi hardware_mode:=real
+
+  # For development machine with mock hardware
+  ros2 launch chessmate_hardware unified_hardware.launch.py platform:=linux_host hardware_mode:=mock
 """
 
 import os
@@ -22,23 +29,7 @@ from launch.conditions import IfCondition, UnlessCondition
 from ament_index_python.packages import get_package_share_directory
 
 
-def detect_platform():
-    """Detect current platform"""
-    try:
-        if os.path.exists('/proc/device-tree/model'):
-            with open('/proc/device-tree/model', 'r') as f:
-                if 'raspberry pi' in f.read().lower():
-                    return 'raspberry_pi'
-        
-        if os.path.exists('/sys/class/gpio') and (
-            os.path.exists('/boot/config.txt') or 
-            os.path.exists('/boot/firmware/config.txt')
-        ):
-            return 'raspberry_pi'
-        
-        return 'linux_host'
-    except:
-        return 'linux_host'
+
 
 
 def generate_launch_description():
@@ -48,15 +39,12 @@ def generate_launch_description():
     pkg_dir = get_package_share_directory('chessmate_hardware')
     config_file = os.path.join(pkg_dir, 'config', 'unified_hardware_config.yaml')
     
-    # Detect platform
-    platform_type = detect_platform()
-    
     # Declare launch arguments
     declared_arguments = [
         DeclareLaunchArgument(
             'platform',
-            default_value=platform_type,
-            description='Target platform: linux_host, raspberry_pi, or mock'
+            default_value='raspberry_pi',
+            description='Target platform: linux_host, raspberry_pi, or mock (user must specify)'
         ),
         DeclareLaunchArgument(
             'config_file',
