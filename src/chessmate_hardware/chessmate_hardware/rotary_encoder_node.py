@@ -50,6 +50,7 @@ class RotaryEncoderNode(Node):
         # Initialize GPIO abstraction
         try:
             self.gpio = GPIOAbstraction(use_real_gpio=use_real_gpio)
+            self.get_logger().info(f'GPIO abstraction initialized - using real GPIO: {self.gpio.use_real_gpio}')
         except Exception as e:
             self.get_logger().error(f"Failed to initialize GPIO: {e}")
             raise
@@ -96,10 +97,12 @@ class RotaryEncoderNode(Node):
             self.gpio.setup_pin(self.dt_pin, GPIOMode.INPUT, GPIOPull.UP)
             self.gpio.setup_pin(self.btn_pin, GPIOMode.INPUT, GPIOPull.UP)
             
-            # Add event detection
-            self.gpio.add_event_detect(self.clk_pin, GPIOEdge.BOTH, self._pulse_callback)
-            self.gpio.add_event_detect(self.dt_pin, GPIOEdge.BOTH, self._pulse_callback)
-            self.gpio.add_event_detect(self.btn_pin, GPIOEdge.RISING, self._button_callback, bouncetime=200)
+            # Add event detection with proper bouncetime
+            self.get_logger().info(f'Setting up GPIO event detection on pins CLK={self.clk_pin}, DT={self.dt_pin}, SW={self.btn_pin}')
+            self.gpio.add_event_detect(self.clk_pin, GPIOEdge.BOTH, self._pulse_callback, bouncetime=50)
+            self.gpio.add_event_detect(self.dt_pin, GPIOEdge.BOTH, self._pulse_callback, bouncetime=50)
+            self.gpio.add_event_detect(self.btn_pin, GPIOEdge.FALLING, self._button_callback, bouncetime=300)
+            self.get_logger().info('GPIO event detection setup complete')
             
             # Initialize states
             with self.state_lock:
@@ -116,9 +119,10 @@ class RotaryEncoderNode(Node):
     def _pulse_callback(self, channel):
         """
         Handle rotary encoder pulse events (CLK/DT pin changes)
-        
+
         This implements the same logic as the original Rotary.py __pulse method
         """
+        self.get_logger().info(f'DEBUG: Pulse callback triggered on channel {channel}')
         try:
             clk_state = self.gpio.read_pin(self.clk_pin)
             dt_state = self.gpio.read_pin(self.dt_pin)
@@ -150,9 +154,10 @@ class RotaryEncoderNode(Node):
     def _button_callback(self, channel):
         """
         Handle button press events
-        
+
         This implements the same logic as the original Rotary.py __button method
         """
+        self.get_logger().info(f'DEBUG: Button callback triggered on channel {channel}')
         try:
             with self.state_lock:
                 current_state = self.gpio.read_pin(self.btn_pin)

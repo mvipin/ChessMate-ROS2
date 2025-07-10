@@ -142,9 +142,9 @@ unified_arduino_bridge:
     raspberry_pi_enable_gpio: true
     raspberry_pi_lcd_sda_pin: 2
     raspberry_pi_lcd_scl_pin: 3
-    raspberry_pi_rotary_clk_pin: 18
-    raspberry_pi_rotary_dt_pin: 19
-    raspberry_pi_rotary_sw_pin: 20
+    raspberry_pi_rotary_clk_pin: 11
+    raspberry_pi_rotary_dt_pin: 12
+    raspberry_pi_rotary_sw_pin: 13
     raspberry_pi_status_led_pin: 21
     raspberry_pi_cpu_governor: "performance"
     raspberry_pi_enable_hardware_pwm: true

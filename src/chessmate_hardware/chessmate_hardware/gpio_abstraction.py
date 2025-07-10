@@ -97,8 +97,10 @@ class GPIOAbstraction:
         try:
             from RPi import GPIO
             self.GPIO = GPIO
-            self.GPIO.setmode(GPIO.BOARD)
-            self.logger.info("Real GPIO initialized successfully")
+            self.GPIO.setmode(GPIO.BCM)
+            # Disable GPIO warnings
+            self.GPIO.setwarnings(False)
+            self.logger.info("Real GPIO initialized successfully with BCM mode")
         except ImportError:
             self.logger.error("RPi.GPIO not available, falling back to mock GPIO")
             self.use_real_gpio = False
@@ -176,7 +178,7 @@ class GPIOAbstraction:
         
         self._pin_states[pin] = state
     
-    def add_event_detect(self, pin: int, edge: GPIOEdge, callback: Callable, bouncetime: int = 0):
+    def add_event_detect(self, pin: int, edge: GPIOEdge, callback: Callable, bouncetime: int = 100):
         """
         Add edge detection to a pin
         
@@ -194,7 +196,12 @@ class GPIOAbstraction:
                 GPIOEdge.FALLING: self.GPIO.FALLING,
                 GPIOEdge.BOTH: self.GPIO.BOTH
             }[edge]
-            
+
+            # Ensure bouncetime is valid for RPi.GPIO (must be > 0)
+            if bouncetime <= 0:
+                bouncetime = 100  # Default to 100ms if invalid
+
+            print(f"DEBUG: Setting up GPIO pin {pin} with bouncetime={bouncetime}")
             self.GPIO.add_event_detect(pin, gpio_edge, callback=callback, bouncetime=bouncetime)
         else:
             self.GPIO.add_event_detect(pin, edge.value, callback, bouncetime)
