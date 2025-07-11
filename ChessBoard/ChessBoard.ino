@@ -1,4 +1,8 @@
-#include "Utils.h"
+#include "Sensor.h"
+#include "Display.h"
+#include "Button.h"
+#include "Serial.h"
+#include "Mock.h"
 
 move_state_t state;
 char legal_moves[LEGAL_MOVES_MAX][5];
@@ -12,16 +16,38 @@ unsigned long prev_override_ms = 0;
 uint8_t confirm_zreset_cnt = 0;
 unsigned long prev_zreset_ms = 0;
 
+bool mock_mode = MOCK_MODE_DEFAULT;
+unsigned long mock_move_start_time = 0;
+unsigned long mock_move_duration = 0;
+bool mock_move_in_progress = false;
+bool mock_hint_requested = false;
+char mock_selected_move[5] = "";
+bool mock_occupancy[CHESS_ROWS][CHESS_COLS];
+
 void process_board() {
   if (state == MOVE_RESET) {
     confirm = false;
     hint = false;
   } else if (state == MOVE_START) {
+    // Mock mode: Start automated move if not already in progress
+    if (mock_mode && !mock_move_in_progress && !hint) {
+      mock_start_move();
+    }
+
+    // Mock mode: Check if move is complete
+    if (mock_mode) {
+      mock_check_move_complete();
+    }
+
     // Need clue?
     if (hint) {
       hint = false;
       highlight_move(special_moves[MOVE_TYPE_HINT], MAGENTA, MAGENTA);
-      delay(500);
+      if (!mock_mode) {
+        delay(500);
+      } else {
+        Serial.println("MOCK: Hint displayed");
+      }
 
       // Detect user override
       unsigned long curr_override_ms = millis();
@@ -113,21 +139,38 @@ void debug_init() {
         break;
       }
   }
+
+  // Initialize random seed
+  randomSeed(analogRead(0));
+
+  Serial.print("INIT: Default mode is ");
+  Serial.println(mock_mode ? "MOCK" : "REAL");
+  Serial.println("INIT: Mode can be changed via 'mode:real' or 'mode:mock' command");
 }
 
 void setup() {
   debug_init();
   serial_init();
   display_init();
-  sensor_init();
-  button_init();
+
+  if (!mock_mode) {
+    sensor_init();
+    button_init();
+  } else {
+    Serial.println("MOCK: Skipping sensor and button initialization");
+  }
+
   state = MOVE_NONE;
   Serial.println("Welcome to ChessMate!");
 }
 
 void loop() {
   scan_serial();
-  scan_sensors();
-  scan_buttons();
+
+  if (!mock_mode) {
+    scan_sensors();
+    scan_buttons();
+  }
+
   process_board();
 }

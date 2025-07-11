@@ -59,6 +59,15 @@ enum {
 #define CONFIRM_ZRESET_CNT 3
 #define CONFIRM_ZRESET_INTERVAL 3000
 
+// Mock mode configuration - determined at runtime via protocol
+#define MOCK_MODE_DEFAULT true  // Default mode if not specified by host
+#define MOCK_MOVE_MIN_TIME 2000  // Minimum time to make a move (ms)
+#define MOCK_MOVE_MAX_TIME 8000  // Maximum time to make a move (ms)
+#define MOCK_HINT_PROBABILITY 20 // 20% chance to request hint
+#define MOCK_THINK_TIME 1000     // Time to "think" before move (ms)
+
+
+
 void get_algebraic_notation(int row, int col, char *notation) {
   if (row >= 0 && row < CHESS_ROWS && col >= 0 && col < CHESS_COLS) {
     notation[0] = 'a' + col; // Columns map to letters

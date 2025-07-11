@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Adafruit_MCP23X17.h>
-#include "Utils.h"
+#include "Sensor.h"
+#include "Display.h"
 
 #define MOVEMENT_TYPE_ABSENT (1 << 0) // instantaneous state
 #define MOVEMENT_TYPE_PRESENT (1 << 1) // instantaneous state

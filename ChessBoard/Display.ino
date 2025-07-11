@@ -1,7 +1,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
-#include "Utils.h"
+#include "Display.h"
 
 #define DISPLAY_LED_PIN 12
 #define CONTROL_LED_PIN 19

@@ -1,4 +1,7 @@
-#include "Utils.h"
+#include "Serial.h"
+#include "Display.h"
+#include "Sensor.h"
+#include "Mock.h"
 
 #define MAX_TOKENS (4 * CHESS_ROWS + 2)
 
@@ -37,12 +40,34 @@ void process_cmd(char cmd[], uint8_t size) {
     Serial.println("Host initialized");
     reset_display();
     lightup_display();
+  } else if (strcmp(tokens[idx],"mode") == 0) {
+    // Set operating mode: mode:real or mode:mock
+    if (++idx < num_tokens) {
+      if (strcmp(tokens[idx], "real") == 0) {
+        mock_mode = false;
+        Serial.println("MODE: Real hardware mode enabled");
+      } else if (strcmp(tokens[idx], "mock") == 0) {
+        mock_mode = true;
+        Serial.println("MODE: Mock simulation mode enabled");
+      } else {
+        Serial.print("MODE: Unknown mode '");
+        Serial.print(tokens[idx]);
+        Serial.println("', keeping current mode");
+      }
+    }
+    Serial.print("MODE: Current mode is ");
+    Serial.println(mock_mode ? "MOCK" : "REAL");
   } else if (strcmp(tokens[idx],"occupancy") == 0) {
     reset_occupancy();
     while (++idx < num_tokens) {
       uint8_t row = atoi(tokens[idx]) / CHESS_COLS;
       uint8_t col = atoi(tokens[idx]) % CHESS_ROWS;
       occupancy_init[row][col] = true;
+    }
+
+    // Initialize mock occupancy if in mock mode
+    if (mock_mode) {
+      mock_init_occupancy();
     }
   } else if (strcmp(tokens[idx],"legal") == 0) {
     while (++idx < num_tokens) {
@@ -74,6 +99,13 @@ void process_cmd(char cmd[], uint8_t size) {
     set_control_pixel(COMPUTER, BLACK);
     print_legal_moves();
     state = MOVE_RESET;
+
+    // Reset mock mode state for new turn
+    if (mock_mode) {
+      mock_move_in_progress = false;
+      mock_hint_requested = false;
+      Serial.println("MOCK: Ready for human turn");
+    }
   } else if (strcmp(tokens[idx],"override") == 0) {
     strncpy(special_moves[MOVE_TYPE_OVERRIDE], tokens[++idx], 4);
     special_moves[MOVE_TYPE_OVERRIDE][4] = '\0';
@@ -135,7 +167,8 @@ void process_cmd(char cmd[], uint8_t size) {
 }
 
 String check_for_cmd() {
-  String input = Serial1.readStringUntil('\n');
+  // Temporarily use USB Serial for testing
+  String input = Serial.readStringUntil('\n');
   if (input != NULL) {
     input.trim();
   }
@@ -159,10 +192,12 @@ void scan_serial() {
 
 // To the host
 void send_response(const char resp[]) {
-  Serial1.println(resp);
+  // Temporarily use USB Serial for testing
+  Serial.println(resp);
 }
 
 void serial_init() {
-  Serial1.begin(9600); // for communicating with Pi
-  Serial.println("ChessBoard-Pi serial communication initialized");
+  // Temporarily use USB Serial for testing
+  // Serial1.begin(9600); // for communicating with Pi (disabled for USB testing)
+  Serial.println("ChessBoard-USB serial communication initialized");
 }
