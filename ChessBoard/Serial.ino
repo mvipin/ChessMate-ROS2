@@ -1,10 +1,6 @@
 #include "Utils.h"
 
-#define UART_RX_PIN 9
-#define UART_TX_PIN 8
 #define MAX_TOKENS (4 * CHESS_ROWS + 2)
-
-UART Serial2(UART_TX_PIN, UART_RX_PIN, NC, NC);
 
 char cmdstr[CMD_LEN_MAX];
 
@@ -76,7 +72,6 @@ void process_cmd(char cmd[], uint8_t size) {
   } else if (strcmp(tokens[idx],"start") == 0) {
     set_control_pixel(HUMAN, GREEN);
     set_control_pixel(COMPUTER, BLACK);
-    send_indication("s");
     print_legal_moves();
     state = MOVE_RESET;
   } else if (strcmp(tokens[idx],"override") == 0) {
@@ -104,22 +99,10 @@ void process_cmd(char cmd[], uint8_t size) {
       color = ORANGE;
     }
     highlight_move(special_moves[MOVE_TYPE_COMP], GREEN, color);
-    Serial1.print(tokens[idx]);
     state = MOVE_COMP;
     Serial.print("comp: ");
     Serial.println(special_moves[MOVE_TYPE_COMP]);
-    while (true) {
-      String ack = Serial1.readStringUntil('\n');
-      if (ack != NULL) {
-        ack.trim();
-        Serial.print("Arm Ack: ");
-        Serial.println(ack);
-        if (ack == "done") {
-          confirm = true;
-          break;
-        }
-      }
-    }
+    confirm = true;  // Auto-confirm computer moves
   } else if (strcmp(tokens[idx],"checkmate") == 0) {
     char dst[3];
     strncpy(dst, tokens[++idx], 2);
@@ -152,7 +135,7 @@ void process_cmd(char cmd[], uint8_t size) {
 }
 
 String check_for_cmd() {
-  String input = Serial2.readStringUntil('\n');
+  String input = Serial1.readStringUntil('\n');
   if (input != NULL) {
     input.trim();
   }
@@ -175,17 +158,11 @@ void scan_serial() {
 }
 
 // To the host
-void send_response(char resp[]) {
-  Serial2.println(resp);
-}
-
-// To the robotic arm
-void send_indication(char ind[]) {
-  Serial1.println(ind);
+void send_response(const char resp[]) {
+  Serial1.println(resp);
 }
 
 void serial_init() {
-  Serial1.begin(9600); // for communicating with Robotic Arm
-  Serial2.begin(9600); // for communicating with Pi
-  Serial.println("Host/Target serial communication initialized");
+  Serial1.begin(9600); // for communicating with Pi
+  Serial.println("ChessBoard-Pi serial communication initialized");
 }

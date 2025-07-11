@@ -70,7 +70,6 @@ void process_board() {
         reset_occupancy();
         set_control_pixel(HUMAN, BLACK);
         set_control_pixel(COMPUTER, GREEN);
-        send_indication("i");
       } else {
         state = MOVE_RESET;
         unsigned long curr_zreset_ms = millis();
@@ -78,7 +77,6 @@ void process_board() {
           confirm_zreset_cnt++;
           prev_zreset_ms = curr_zreset_ms;  // Reset the timer
           if (confirm_zreset_cnt == CONFIRM_ZRESET_CNT) {
-            send_indication("j");
             confirm_zreset_cnt = 0;
           }
         } else {
@@ -98,7 +96,6 @@ void process_board() {
       set_control_pixel(HUMAN, BLACK);
       set_control_pixel(COMPUTER, GREEN);
     } else if (state == MOVE_CHECKMATE) {
-      send_indication("z");
       display_win(special_moves[MOVE_TYPE_CHECKMATE]);
       state = MOVE_INIT;
       reset_display();
