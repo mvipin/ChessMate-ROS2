@@ -1,0 +1,28 @@
+# Multi-architecture build directories
+build/
+build_x86/
+build_arm/
+install/
+install_x86/
+install_arm/
+log/
+log_x86/
+log_arm/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
