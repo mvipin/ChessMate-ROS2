@@ -66,6 +66,26 @@ enum {
 #define MOCK_HINT_PROBABILITY 20 // 20% chance to request hint
 #define MOCK_THINK_TIME 1000     // Time to "think" before move (ms)
 
+// Debug configuration
+#define DEBUG_ENABLED false      // Set to false to disable debug output for host communication
+
+// Debug print function
+void debug_print(const char* message) {
+  if (DEBUG_ENABLED) {
+    Serial.print("[DEBUG] ");
+    Serial.println(message);
+    Serial.flush();
+  }
+}
+
+void debug_print(const String& message) {
+  if (DEBUG_ENABLED) {
+    Serial.print("[DEBUG] ");
+    Serial.println(message);
+    Serial.flush();
+  }
+}
+
 
 
 void get_algebraic_notation(int row, int col, char *notation) {

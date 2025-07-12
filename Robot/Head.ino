@@ -168,12 +168,12 @@ void eyelids_test()
 {
 #define INTERVAL 20
   for (int gap = FULLY_OPEN; gap <= FULLY_CLOSED; gap++) {
-    set_eyelid(EYE_LEFT, gap, 0);
-    set_eyelid(EYE_RIGHT, gap, 0);
+    set_eyelid(EYE_LEFT, (pos_gap_t)gap, 0);
+    set_eyelid(EYE_RIGHT, (pos_gap_t)gap, 0);
   }
   for (int gap = FULLY_CLOSED; gap >= FULLY_OPEN; gap--) {
-    set_eyelid(EYE_LEFT, gap, 0);
-    set_eyelid(EYE_RIGHT, gap, 0);
+    set_eyelid(EYE_LEFT, (pos_gap_t)gap, 0);
+    set_eyelid(EYE_RIGHT, (pos_gap_t)gap, 0);
   }
 }
 
@@ -183,13 +183,13 @@ void eyeballs_test()
   set_eyelid(EYE_LEFT, FULLY_OPEN, 0);
   set_eyelid(EYE_RIGHT, FULLY_OPEN, 0);
   for (int clk = FULLY_RIGHT; clk <= FULLY_LEFT; clk++) {
-    set_eyeball(EYE_LEFT, clk, 0);
-    set_eyeball(EYE_RIGHT, clk, 0);
+    set_eyeball(EYE_LEFT, (pos_clk_t)clk, 0);
+    set_eyeball(EYE_RIGHT, (pos_clk_t)clk, 0);
     delay(500);
   }
   for (int clk = FULLY_LEFT; clk >= FULLY_RIGHT; clk--) {
-    set_eyeball(EYE_LEFT, clk, 0);
-    set_eyeball(EYE_RIGHT, clk, 0);
+    set_eyeball(EYE_LEFT, (pos_clk_t)clk, 0);
+    set_eyeball(EYE_RIGHT, (pos_clk_t)clk, 0);
     delay(500);
   }
 }
@@ -200,13 +200,13 @@ void eyelevel_test()
   set_eyelid(EYE_LEFT, HALF_OPEN, 0);
   set_eyelid(EYE_RIGHT, HALF_OPEN, 0);
   for (int level = FULLY_DOWN; level <= FULLY_UP; level++) {
-    set_eyelevel(EYE_LEFT, level, 0);
-    set_eyelevel(EYE_RIGHT, level, 0);
+    set_eyelevel(EYE_LEFT, (pos_level_t)level, 0);
+    set_eyelevel(EYE_RIGHT, (pos_level_t)level, 0);
     delay(1000);
   }
   for (int level = FULLY_UP; level >= FULLY_DOWN; level--) {
-    set_eyelevel(EYE_LEFT, level, 0);
-    set_eyelevel(EYE_RIGHT, level, 0);
+    set_eyelevel(EYE_LEFT, (pos_level_t)level, 0);
+    set_eyelevel(EYE_RIGHT, (pos_level_t)level, 0);
     delay(1000);
   }
 }

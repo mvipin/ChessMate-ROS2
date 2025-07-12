@@ -1,3 +1,4 @@
+#include "Utils.h"
 #include "Serial.h"
 #include "Display.h"
 #include "Sensor.h"
@@ -8,11 +9,13 @@
 char cmdstr[CMD_LEN_MAX];
 
 void print_legal_moves() {
+  Serial.print("LEGAL MOVES: ");
   for (int i=0; i<legal_moves_cnt; i++) {
     Serial.print(legal_moves[i]);
     Serial.print(" ");
   }
   Serial.println();
+  Serial.flush();
 }
 
 int parse_command(char command[], char* tokens[]) {
@@ -37,9 +40,12 @@ void process_cmd(char cmd[], uint8_t size) {
   uint8_t idx = 0;
   if (strcmp(tokens[idx],"init") == 0) {
     state = MOVE_INIT;
-    Serial.println("Host initialized");
+    Serial.println("INIT: Host initialized");
+    Serial.flush();
     reset_display();
     lightup_display();
+    Serial.println("INIT: Board reset complete");
+    Serial.flush();
   } else if (strcmp(tokens[idx],"mode") == 0) {
     // Set operating mode: mode:real or mode:mock
     if (++idx < num_tokens) {
@@ -57,6 +63,7 @@ void process_cmd(char cmd[], uint8_t size) {
     }
     Serial.print("MODE: Current mode is ");
     Serial.println(mock_mode ? "MOCK" : "REAL");
+    Serial.flush();
   } else if (strcmp(tokens[idx],"occupancy") == 0) {
     reset_occupancy();
     while (++idx < num_tokens) {
@@ -69,6 +76,10 @@ void process_cmd(char cmd[], uint8_t size) {
     if (mock_mode) {
       mock_init_occupancy();
     }
+    Serial.print("OCCUPANCY: Set ");
+    Serial.print(num_tokens - 1);
+    Serial.println(" pieces");
+    Serial.flush();
   } else if (strcmp(tokens[idx],"legal") == 0) {
     while (++idx < num_tokens) {
       if (legal_moves_cnt >= LEGAL_MOVES_MAX) {
@@ -80,6 +91,10 @@ void process_cmd(char cmd[], uint8_t size) {
       strncpy(legal_moves[legal_moves_cnt], tokens[idx], 4);
       legal_moves[legal_moves_cnt++][4] = '\0';
     }
+    Serial.print("LEGAL: Set ");
+    Serial.print(legal_moves_cnt);
+    Serial.println(" legal moves");
+    Serial.flush();
   } else if (strcmp(tokens[idx],"hint") == 0) {
     strncpy(special_moves[MOVE_TYPE_HINT], tokens[++idx], 4);
     special_moves[MOVE_TYPE_HINT][4] = '\0';
@@ -95,6 +110,7 @@ void process_cmd(char cmd[], uint8_t size) {
       check_squares[check_squares_cnt++][3] = '\0';
     }
   } else if (strcmp(tokens[idx],"start") == 0) {
+    Serial.println("START: Human turn beginning");
     set_control_pixel(HUMAN, GREEN);
     set_control_pixel(COMPUTER, BLACK);
     print_legal_moves();
@@ -105,7 +121,10 @@ void process_cmd(char cmd[], uint8_t size) {
       mock_move_in_progress = false;
       mock_hint_requested = false;
       Serial.println("MOCK: Ready for human turn");
+    } else {
+      Serial.println("REAL: Waiting for physical input");
     }
+    Serial.flush();
   } else if (strcmp(tokens[idx],"override") == 0) {
     strncpy(special_moves[MOVE_TYPE_OVERRIDE], tokens[++idx], 4);
     special_moves[MOVE_TYPE_OVERRIDE][4] = '\0';
@@ -167,7 +186,7 @@ void process_cmd(char cmd[], uint8_t size) {
 }
 
 String check_for_cmd() {
-  // Temporarily use USB Serial for testing
+  // Use USB Serial for Pi communication
   String input = Serial.readStringUntil('\n');
   if (input != NULL) {
     input.trim();
@@ -192,12 +211,12 @@ void scan_serial() {
 
 // To the host
 void send_response(const char resp[]) {
-  // Temporarily use USB Serial for testing
+  // Send response to Pi via USB Serial
   Serial.println(resp);
+  Serial.flush();
 }
 
 void serial_init() {
-  // Temporarily use USB Serial for testing
-  // Serial1.begin(9600); // for communicating with Pi (disabled for USB testing)
-  Serial.println("ChessBoard-USB serial communication initialized");
+  // USB Serial is already initialized in setup()
+  // No additional initialization needed for host communication
 }

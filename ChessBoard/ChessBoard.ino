@@ -1,3 +1,4 @@
+#include "Utils.h"
 #include "Sensor.h"
 #include "Display.h"
 #include "Button.h"
@@ -28,6 +29,13 @@ void process_board() {
   if (state == MOVE_RESET) {
     confirm = false;
     hint = false;
+
+    // In mock mode, automatically transition to MOVE_START
+    if (mock_mode) {
+      Serial.println("MOCK: Transitioning to MOVE_START");
+      Serial.flush();
+      state = MOVE_START;
+    }
   } else if (state == MOVE_START) {
     // Mock mode: Start automated move if not already in progress
     if (mock_mode && !mock_move_in_progress && !hint) {
@@ -88,7 +96,22 @@ void process_board() {
     confirm = false;
     if (state == MOVE_START) {
       char move[5];
-      if (compute_move(move)) {
+      bool move_valid = false;
+
+      if (mock_mode) {
+        // In mock mode, use the selected move directly
+        strncpy(move, mock_selected_move, 4);
+        move[4] = '\0';
+        move_valid = true;
+        Serial.print("MOCK: Confirming move ");
+        Serial.println(move);
+        Serial.flush();
+      } else {
+        // In real mode, compute move from sensors
+        move_valid = compute_move(move);
+      }
+
+      if (move_valid) {
         send_response(move);
         state = MOVE_STOP;
         legal_moves_cnt = 0;
@@ -134,8 +157,6 @@ void debug_init() {
   Serial.begin(9600);
   for (uint16_t trial = 0; trial < 2000; trial++) {
       if (Serial) {
-        Serial.print("Debug initialized: ");
-        Serial.println(trial);
         break;
       }
   }
@@ -143,9 +164,11 @@ void debug_init() {
   // Initialize random seed
   randomSeed(analogRead(0));
 
-  Serial.print("INIT: Default mode is ");
-  Serial.println(mock_mode ? "MOCK" : "REAL");
-  Serial.println("INIT: Mode can be changed via 'mode:real' or 'mode:mock' command");
+  if (DEBUG_ENABLED) {
+    Serial.print("INIT: Default mode is ");
+    Serial.println(mock_mode ? "MOCK" : "REAL");
+    Serial.println("INIT: Mode can be changed via 'mode:real' or 'mode:mock' command");
+  }
 }
 
 void setup() {
@@ -157,11 +180,15 @@ void setup() {
     sensor_init();
     button_init();
   } else {
-    Serial.println("MOCK: Skipping sensor and button initialization");
+    if (DEBUG_ENABLED) {
+      Serial.println("MOCK: Skipping sensor and button initialization");
+    }
   }
 
   state = MOVE_NONE;
-  Serial.println("Welcome to ChessMate!");
+  if (DEBUG_ENABLED) {
+    Serial.println("Welcome to ChessMate!");
+  }
 }
 
 void loop() {

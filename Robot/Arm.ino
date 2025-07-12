@@ -425,9 +425,9 @@ uint32_t adjusted_z_min(piece_type_t piece, uint8_t row)
   return zmin;
 }
 
-uint8_t piece_type(char p)
+piece_type_t piece_type(char p)
 {
-  piece_type_t piece;
+  piece_type_t piece = PIECE_TYPE_PAWN;  // Default to pawn
   switch (p) {
     case 'p': {
       piece = PIECE_TYPE_PAWN;
