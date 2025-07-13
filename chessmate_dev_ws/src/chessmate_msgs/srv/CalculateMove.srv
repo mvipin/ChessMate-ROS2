@@ -1,0 +1,17 @@
+# CalculateMove.srv
+# Service to calculate the best move for a given position
+
+# Request
+string fen                        # Current position in FEN notation
+uint8 skill_level                # Engine skill level (1-20)
+float32 time_limit               # Time limit for calculation (seconds)
+bool white_to_move               # Whether it's white's turn to move
+
+---
+
+# Response
+bool success                      # Whether calculation was successful
+ChessMove best_move              # The calculated best move
+float32 evaluation               # Position evaluation (centipawns)
+string message                   # Status message or error description
+float32 calculation_time         # Time taken for calculation (seconds)

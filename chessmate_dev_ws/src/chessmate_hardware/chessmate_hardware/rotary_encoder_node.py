@@ -66,22 +66,22 @@ class RotaryEncoderNode(Node):
         
         # Thread safety
         self.state_lock = threading.Lock()
-        
-        # Setup GPIO pins
-        self._setup_gpio()
-        
-        # Create publisher with appropriate QoS
+
+        # Create publisher with appropriate QoS BEFORE setting up GPIO
         qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             durability=DurabilityPolicy.VOLATILE,
             depth=10
         )
-        
+
         self.encoder_publisher = self.create_publisher(
             RotaryEncoderEvent,
             'rotary_encoder_events',
             qos_profile
         )
+
+        # Setup GPIO pins AFTER publisher is created
+        self._setup_gpio()
         
         # Create timer for periodic status updates
         publish_rate = self.get_parameter('publish_rate').get_parameter_value().double_value
@@ -126,14 +126,15 @@ class RotaryEncoderNode(Node):
         try:
             clk_state = self.gpio.read_pin(self.clk_pin)
             dt_state = self.gpio.read_pin(self.dt_pin)
-            
+
+            self.get_logger().debug(f"Pulse callback: channel={channel}, CLK={clk_state}, DT={dt_state}, last_state={self.rotary_last_state}")
+
             with self.state_lock:
                 if clk_state != self.rotary_last_state:
                     self.rotary_last_state = clk_state
-                    
-                    if self.calibrate:
-                        self.calibrate = False
-                        
+
+                    # Simplified rotation detection - detect on every CLK falling edge
+                    if clk_state == 0:  # CLK falling edge
                         # Determine rotation direction
                         if dt_state != clk_state:
                             direction = -1  # Counter-clockwise
@@ -141,12 +142,11 @@ class RotaryEncoderNode(Node):
                         else:
                             direction = 1   # Clockwise
                             self.encoder_position += 1
-                        
+
+                        self.get_logger().info(f"Rotation detected: direction={direction}, position={self.encoder_position}")
+
                         # Publish rotation event
                         self._publish_rotation_event(direction)
-                        
-                    else:
-                        self.calibrate = True
                         
         except Exception as e:
             self.get_logger().error(f"Pulse callback error: {e}")

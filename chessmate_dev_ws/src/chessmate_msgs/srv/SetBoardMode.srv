@@ -1,0 +1,22 @@
+# SetBoardMode.srv
+# Service to set the operating mode of the chess board
+
+# Board mode constants
+uint8 MODE_IDLE = 0              # Board is idle, no active game
+uint8 MODE_SETUP = 1             # Board is in setup mode for piece placement
+uint8 MODE_PLAYING = 2           # Board is in active game mode
+uint8 MODE_ANALYSIS = 3          # Board is in analysis mode
+uint8 MODE_CALIBRATION = 4       # Board is in calibration mode
+
+# Request
+uint8 mode                       # Desired board mode
+bool force_mode_change          # Force mode change even if unsafe
+string additional_params        # Additional mode-specific parameters
+
+---
+
+# Response
+bool success                     # Whether mode change was successful
+uint8 previous_mode             # Previous board mode
+uint8 current_mode              # Current board mode after change
+string message                  # Status message or error description

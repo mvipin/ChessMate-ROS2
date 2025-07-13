@@ -118,8 +118,8 @@ ros2 run chessmate_hardware game_management_node
 - `large_font_size`: Large font size (default: 15)
 
 #### Arduino Communication Node
-- `board_controller_port`: Serial port for board controller (default: /dev/ttyUSB0)
-- `arm_controller_port`: Serial port for arm controller (default: /dev/ttyUSB1)
+- `board_controller_port`: Serial port for board controller (default: /dev/ttyACM0)
+- `arm_controller_port`: Serial port for arm controller (default: /dev/ttyACM1)
 - `baud_rate`: Serial communication baud rate (default: 9600)
 - `timeout`: Serial timeout in seconds (default: 1.0)
 - `use_mock_hardware`: Use mock hardware for development (default: auto-detect)

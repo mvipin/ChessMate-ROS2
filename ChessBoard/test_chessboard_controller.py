@@ -225,21 +225,25 @@ def main():
         else:
             # Automated tests
             print("🔄 Running automated tests...")
-            
+
             if not tester.test_basic_commands():
                 print("❌ Basic command tests failed")
                 return 1
-            
+
             if not tester.test_mock_game_flow():
                 print("❌ Mock game flow test failed")
                 return 1
-            
+
             print("\n🎉 All tests completed!")
-            
-            # Offer interactive mode
-            response = input("\nEnter interactive mode? (y/n): ")
-            if response.lower().startswith('y'):
-                tester.test_interactive_mode()
+
+            # Only offer interactive mode if not in fully automated mode
+            if len(sys.argv) > 1 and sys.argv[1] == 'automated':
+                print("✅ Automated test completed successfully")
+            else:
+                # Offer interactive mode
+                response = input("\nEnter interactive mode? (y/n): ")
+                if response.lower().startswith('y'):
+                    tester.test_interactive_mode()
         
     except KeyboardInterrupt:
         print("\n⏹️  Test interrupted by user")

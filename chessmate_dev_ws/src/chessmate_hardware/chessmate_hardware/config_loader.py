@@ -240,8 +240,8 @@ class ConfigLoader:
         return {
             'platform': {'auto_detect': True, 'override': ''},
             'serial': {
-                'chessboard_port': '/dev/ttyUSB0',
-                'robot_port': '/dev/ttyUSB1',
+                'chessboard_port': '/dev/ttyACM0',
+                'robot_port': '/dev/ttyACM1',
                 'baud_rate': 9600,
                 'timeout': 2.0,
                 'use_mock_hardware': True

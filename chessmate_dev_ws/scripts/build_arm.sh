@@ -4,7 +4,10 @@
 
 set -e
 
-cd "$(dirname "$0")"
+# Change to workspace directory (parent of scripts directory)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$WORKSPACE_DIR"
 
 echo "🏗️  Building ChessMate for ARM Architecture"
 echo "==========================================="

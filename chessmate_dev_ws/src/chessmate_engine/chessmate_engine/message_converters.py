@@ -174,6 +174,7 @@ class MessageConverter:
         """
         board_state = BoardState()
         board_state.fen_string = fen_string
+        board_state.timestamp = 0  # Will be set by caller if needed
 
         try:
             # Parse FEN

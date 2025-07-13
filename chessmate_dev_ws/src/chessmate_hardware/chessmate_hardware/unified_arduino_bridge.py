@@ -26,8 +26,8 @@ from std_msgs.msg import String, Bool
 from geometry_msgs.msg import Point
 from sensor_msgs.msg import JointState
 from chessmate_msgs.msg import (
-    ArduinoCommand, JointCommand, SensorReading, 
-    BoardState, RobotAnimation
+    ArduinoCommand, JointCommand, SensorReading,
+    BoardState, RobotAnimation, ChessPiece
 )
 from chessmate_msgs.srv import CalibrateArm
 
@@ -82,8 +82,8 @@ class UnifiedArduinoBridge(Node):
             namespace='',
             parameters=[
                 # Serial port configuration
-                ('chessboard_port', '/dev/ttyUSB0'),
-                ('robot_port', '/dev/ttyUSB1'),
+                ('chessboard_port', '/dev/ttyACM0'),
+                ('robot_port', '/dev/ttyACM1'),
                 ('baud_rate', 9600),
                 ('timeout', 2.0),
                 ('use_mock_hardware', False),
@@ -462,12 +462,26 @@ class UnifiedArduinoBridge(Node):
         """Publish board state from chessboard controller"""
         try:
             board_state = BoardState()
-            board_state.header.stamp = self.get_clock().now().to_msg()
+            current_time = self.get_clock().now()
+            board_state.timestamp = int(current_time.nanoseconds)
 
-            # Convert board data to piece positions
-            # This would need to be implemented based on the specific format
-            # For now, just store the raw data
-            board_state.board_fen = board_data  # Placeholder
+            # Initialize board state with 64 empty squares
+            squares = []
+            for i in range(64):
+                piece = ChessPiece()
+                piece.type = "none"  # Use "none" for empty squares
+                piece.color = "empty"
+                piece.has_moved = False
+                piece.square_id = i
+                squares.append(piece)
+            board_state.squares = squares
+
+            board_state.active_color = "white"
+            board_state.castling_rights = "KQkq"
+            board_state.en_passant_target = "-"
+            board_state.halfmove_clock = 0
+            board_state.fullmove_number = 1
+            board_state.fen_string = board_data  # Store raw data as FEN placeholder
 
             self.board_state_publisher.publish(board_state)
 

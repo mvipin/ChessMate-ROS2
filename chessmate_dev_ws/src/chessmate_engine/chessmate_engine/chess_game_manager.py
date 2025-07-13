@@ -192,10 +192,9 @@ class ChessGameManager(Node):
             )
             
             if analysis.best_move:
-                # Convert to ChessMove
-                board_state = BoardState()
-                board_state.fen_string = request.fen_string
-                
+                # Convert to ChessMove using proper board state
+                board_state = self.converter.fen_to_board_state(request.fen_string)
+
                 response.best_move = self.converter.uci_to_chess_move(
                     analysis.best_move, board_state)
                 response.best_move.confidence = min(1.0, abs(analysis.evaluation) / 100.0)

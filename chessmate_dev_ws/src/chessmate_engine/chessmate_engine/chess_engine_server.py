@@ -11,7 +11,7 @@ import chess
 # ROS2 message imports
 from chessmate_msgs.msg import BoardState, ChessMove
 from chessmate_msgs.srv import (
-    GetBestMove, EvaluatePosition, ValidateMove, UpdateGameState
+    GetBestMove, EvaluatePosition, ValidateMove, UpdateGameState, CalculateMove
 )
 
 # Local imports
@@ -49,7 +49,10 @@ class ChessEngineServer(Node):
         
         self.update_game_state_service = self.create_service(
             UpdateGameState, 'update_game_state', self.update_game_state_callback)
-        
+
+        self.calculate_move_service = self.create_service(
+            CalculateMove, 'engine/calculate_move', self.calculate_move_callback)
+
         # Initialize engine
         if not self.stockfish.initialize():
             self.get_logger().error("Failed to initialize Stockfish engine")
@@ -222,7 +225,94 @@ class ChessEngineServer(Node):
             response.status_message = f"Error: {e}"
         
         return response
-    
+
+    def calculate_move_callback(self, request, response):
+        """Handle CalculateMove service requests"""
+        self.get_logger().info("=== CalculateMove service callback started ===")
+        try:
+            self.get_logger().info(f"Calculate move request for FEN: {request.fen[:50]}...")
+
+            # Set up the position
+            board = chess.Board(request.fen)
+
+            # Configure engine settings
+            if hasattr(request, 'skill_level') and request.skill_level > 0:
+                # Check if stockfish interface has set_skill_level method
+                if hasattr(self.stockfish, 'set_skill_level'):
+                    self.stockfish.set_skill_level(request.skill_level)
+                else:
+                    self.get_logger().debug(f"Skill level {request.skill_level} requested but not supported")
+
+            # Set time limit
+            time_limit = getattr(request, 'time_limit', 5.0)
+
+            # Get best move from engine
+            analysis_result = self.stockfish.get_best_move(
+                fen_string=request.fen,
+                time_limit=time_limit
+            )
+
+            if analysis_result and analysis_result.best_move:
+                try:
+                    # Convert UCI move to ChessMove message
+                    best_move_uci = analysis_result.best_move
+                    move = chess.Move.from_uci(best_move_uci)
+
+                    # Create a minimal ChessMove to test serialization
+                    chess_move = ChessMove()
+                    chess_move.from_square = str(chess.square_name(move.from_square))
+                    chess_move.to_square = str(chess.square_name(move.to_square))
+                    chess_move.piece_type = "pawn"  # Simplified for testing
+                    chess_move.promotion_piece = ""
+                    chess_move.is_capture = False  # Simplified for testing
+                    chess_move.move_type = "normal"
+
+                    # Use evaluation from analysis result
+                    evaluation = analysis_result.evaluation if analysis_result.evaluation is not None else 0.0
+
+                    # Create a minimal response to test
+                    response.success = True
+                    response.best_move = chess_move
+                    response.evaluation = float(evaluation)  # Ensure it's a float
+                    response.message = f"Best move calculated: {best_move_uci}"
+                    response.calculation_time = float(time_limit)  # Ensure it's a float
+
+                    self.get_logger().info(f"Calculated best move: {best_move_uci} (eval: {evaluation})")
+                    self.get_logger().info(f"Response prepared successfully: {chess_move.from_square} -> {chess_move.to_square}")
+
+                except Exception as move_error:
+                    self.get_logger().error(f"Error creating move response: {move_error}")
+                    response.success = False
+                    response.best_move = ChessMove()
+                    response.evaluation = 0.0
+                    response.message = f"Move conversion error: {move_error}"
+                    response.calculation_time = 0.0
+
+            else:
+                response.success = False
+                response.best_move = ChessMove()  # Empty move
+                response.evaluation = 0.0
+                response.message = "No valid move found"
+                response.calculation_time = 0.0
+
+        except Exception as e:
+            self.get_logger().error(f"CalculateMove service error: {e}")
+            response.success = False
+            response.best_move = ChessMove()  # Empty move
+            response.evaluation = 0.0
+            response.message = f"Error: {e}"
+            response.calculation_time = 0.0
+
+        # Always log the response being sent
+        self.get_logger().info(f"Sending CalculateMove response: success={response.success}")
+
+        # Add a small delay to ensure response is properly sent
+        import time
+        time.sleep(0.1)
+
+        self.get_logger().info("=== CalculateMove service callback completed ===")
+        return response
+
     def destroy_node(self):
         """Cleanup when node is destroyed"""
         self.stockfish.shutdown()

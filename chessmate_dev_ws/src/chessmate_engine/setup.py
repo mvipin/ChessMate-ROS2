@@ -25,6 +25,7 @@ setup(
         'console_scripts': [
             'chess_game_manager = chessmate_engine.chess_game_manager:main',
             'chess_engine_server = chessmate_engine.chess_engine_server:main',
+            'topic_chess_engine_server = chessmate_engine.topic_chess_engine_server:main',
             'simple_chess_engine = chessmate_engine.simple_chess_engine:main',
         ],
     },

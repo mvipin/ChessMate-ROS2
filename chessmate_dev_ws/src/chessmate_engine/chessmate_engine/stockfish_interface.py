@@ -265,11 +265,28 @@ class StockfishInterface:
         else:
             return False, "*"  # Game continues
     
+    def set_skill_level(self, skill_level: int):
+        """Set engine skill level (0-20)"""
+        if not self._is_initialized:
+            return False
+
+        try:
+            # Clamp skill level to valid range
+            skill_level = max(0, min(20, skill_level))
+            self.config.skill_level = skill_level
+
+            # Update engine configuration
+            self.engine.configure({"Skill Level": skill_level})
+            return True
+        except Exception as e:
+            print(f"Failed to set skill level: {e}")
+            return False
+
     def get_engine_info(self) -> str:
         """Get engine information"""
         if not self._is_initialized:
             return "Engine not initialized"
-        
+
         try:
             # Get engine ID
             return f"Stockfish (Skill: {self.config.skill_level}/20, Threads: {self.config.threads})"

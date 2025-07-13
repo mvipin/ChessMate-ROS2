@@ -1,0 +1,15 @@
+# ExecuteMove.srv
+# Service to execute a chess move on the physical board
+
+# Request
+ChessMove move                    # The move to execute
+bool validate_before_execution    # Whether to validate the move first
+float32 execution_timeout         # Timeout for move execution (seconds)
+
+---
+
+# Response
+bool success                      # Whether the move was executed successfully
+string message                    # Status message or error description
+float32 execution_time           # Time taken to execute the move (seconds)
+BoardState resulting_board_state # Board state after move execution

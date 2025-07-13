@@ -228,11 +228,15 @@ def main():
                 return 1
             
             print("\n🎉 All Robot tests completed!")
-            
-            # Offer interactive mode
-            response = input("\nEnter interactive mode? (y/n): ")
-            if response.lower().startswith('y'):
-                tester.test_interactive_mode()
+
+            # Only offer interactive mode if not in fully automated mode
+            if len(sys.argv) > 1 and sys.argv[1] == 'automated':
+                print("✅ Automated test completed successfully")
+            else:
+                # Offer interactive mode
+                response = input("\nEnter interactive mode? (y/n): ")
+                if response.lower().startswith('y'):
+                    tester.test_interactive_mode()
         
     except KeyboardInterrupt:
         print("\n⏹️  Test interrupted by user")

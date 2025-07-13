@@ -18,7 +18,8 @@ import queue
 from typing import Optional, Dict, List, Callable
 from enum import Enum
 
-from chessmate_msgs.msg import ArduinoCommand, BoardState
+from chessmate_msgs.msg import ArduinoCommand, BoardState, ChessMove, ChessPiece
+from chessmate_msgs.srv import ExecuteMove, SetBoardMode
 from .gpio_abstraction import GPIOAbstraction
 from std_msgs.msg import String
 
@@ -45,8 +46,8 @@ class ArduinoCommunicationNode(Node):
         super().__init__('arduino_communication_node')
         
         # Declare parameters
-        self.declare_parameter('chessboard_controller_port', '/dev/ttyUSB0')
-        self.declare_parameter('robot_controller_port', '/dev/ttyUSB1')
+        self.declare_parameter('chessboard_controller_port', '/dev/ttyACM0')
+        self.declare_parameter('robot_controller_port', '/dev/ttyACM1')
         self.declare_parameter('baud_rate', 9600)
         self.declare_parameter('timeout', 1.0)
         self.declare_parameter('use_mock_hardware', not GPIOAbstraction.is_raspberry_pi())
@@ -109,7 +110,20 @@ class ArduinoCommunicationNode(Node):
             'arduino_responses',
             qos_profile
         )
-        
+
+        # Create services
+        self.execute_move_service = self.create_service(
+            ExecuteMove,
+            'robot/execute_move',
+            self._execute_move_callback
+        )
+
+        self.set_board_mode_service = self.create_service(
+            SetBoardMode,
+            'chessboard/set_mode',
+            self._set_board_mode_callback
+        )
+
         # Start communication threads
         self._start_communication_threads()
         
@@ -499,9 +513,26 @@ class ArduinoCommunicationNode(Node):
 
                 # Create and publish BoardState message
                 board_msg = BoardState()
-                board_msg.timestamp = self.get_clock().now().to_msg()
-                # TODO: Fill in board state details based on occupied squares
-                board_msg.fen = ""  # Would need to reconstruct FEN from occupancy
+                current_time = self.get_clock().now()
+                board_msg.timestamp = int(current_time.nanoseconds)
+
+                # Initialize board state with 64 empty squares
+                squares = []
+                for i in range(64):
+                    piece = ChessPiece()
+                    piece.type = "none"  # Use "none" for empty squares
+                    piece.color = "empty"
+                    piece.has_moved = False
+                    piece.square_id = i
+                    squares.append(piece)
+                board_msg.squares = squares
+
+                board_msg.active_color = "white"
+                board_msg.castling_rights = "KQkq"
+                board_msg.en_passant_target = "-"
+                board_msg.halfmove_clock = 0
+                board_msg.fullmove_number = 1
+                board_msg.fen_string = ""  # Would need to reconstruct FEN from occupancy
 
                 self.board_state_publisher.publish(board_msg)
                 self.get_logger().debug(f"Published board occupancy: {occupied_squares}")
@@ -521,8 +552,26 @@ class ArduinoCommunicationNode(Node):
 
             # Create and publish BoardState message with move
             board_msg = BoardState()
-            board_msg.timestamp = self.get_clock().now().to_msg()
-            board_msg.last_move = move
+            current_time = self.get_clock().now()
+            board_msg.timestamp = int(current_time.nanoseconds)
+
+            # Initialize board state with 64 empty squares
+            squares = []
+            for i in range(64):
+                piece = ChessPiece()
+                piece.type = "none"  # Use "none" for empty squares
+                piece.color = "empty"
+                piece.has_moved = False
+                piece.square_id = i
+                squares.append(piece)
+            board_msg.squares = squares
+
+            board_msg.active_color = "white"
+            board_msg.castling_rights = "KQkq"
+            board_msg.en_passant_target = "-"
+            board_msg.halfmove_clock = 0
+            board_msg.fullmove_number = 1
+            board_msg.fen_string = ""
 
             self.board_state_publisher.publish(board_msg)
 
@@ -587,7 +636,113 @@ class ArduinoCommunicationNode(Node):
                     self.command_queues[arduino_type].put(heartbeat_command)
                 except:
                     pass  # Queue might be full, skip this heartbeat
-    
+
+    def _execute_move_callback(self, request, response):
+        """Handle robot move execution service requests"""
+        try:
+            self.get_logger().info(f"Execute move request: {request.move.from_square} -> {request.move.to_square}")
+
+            # Create Arduino command for robot move execution
+            move_str = f"{request.move.from_square}{request.move.piece_type.lower()}{request.move.to_square}{request.move.piece_type.lower()}"
+
+            # Handle captures
+            if hasattr(request.move, 'captured_piece_type') and request.move.captured_piece_type:
+                move_str = f"{request.move.from_square}{request.move.piece_type.lower()}{request.move.to_square}x"
+
+            # Send command to robot controller
+            if ArduinoType.ROBOT_CONTROLLER in self.command_queues:
+                self.command_queues[ArduinoType.ROBOT_CONTROLLER].put(move_str + "\n")
+
+                # Give a brief moment for command processing
+                time.sleep(0.5)
+
+                response.success = True
+                response.message = f"Move {move_str} queued for execution"
+                response.execution_time = 5.0  # Estimated time
+
+                # Create a basic board state response
+                current_time = self.get_clock().now()
+                response.resulting_board_state.timestamp = int(current_time.nanoseconds)
+
+                # Initialize board state with 64 empty squares
+                squares = []
+                for i in range(64):
+                    piece = ChessPiece()
+                    piece.type = "none"  # Use "none" for empty squares
+                    piece.color = "empty"
+                    piece.has_moved = False
+                    piece.square_id = i
+                    squares.append(piece)
+                response.resulting_board_state.squares = squares
+
+                response.resulting_board_state.active_color = "white"
+                response.resulting_board_state.castling_rights = "KQkq"
+                response.resulting_board_state.en_passant_target = "-"
+                response.resulting_board_state.halfmove_clock = 0
+                response.resulting_board_state.fullmove_number = 1
+                response.resulting_board_state.fen_string = ""
+
+                self.get_logger().info(f"✅ Execute move service completed: {move_str}")
+
+            else:
+                response.success = False
+                response.message = "Robot controller not available"
+                response.execution_time = 0.0
+
+        except Exception as e:
+            self.get_logger().error(f"Execute move service error: {e}")
+            response.success = False
+            response.message = f"Service error: {str(e)}"
+            response.execution_time = 0.0
+
+        return response
+
+    def _set_board_mode_callback(self, request, response):
+        """Handle board mode setting service requests"""
+        try:
+            self.get_logger().info(f"Set board mode request: {request.mode}")
+
+            # Map mode constants to string commands
+            mode_map = {
+                0: "idle",      # MODE_IDLE
+                1: "setup",     # MODE_SETUP
+                2: "playing",   # MODE_PLAYING
+                3: "analysis",  # MODE_ANALYSIS
+                4: "calibration" # MODE_CALIBRATION
+            }
+
+            mode_str = mode_map.get(request.mode, "idle")
+
+            # Send mode command to chessboard controller
+            if ArduinoType.CHESSBOARD_CONTROLLER in self.command_queues:
+                mode_command = f"mode:{mode_str}\n"
+                self.command_queues[ArduinoType.CHESSBOARD_CONTROLLER].put(mode_command)
+
+                # Give a brief moment for command processing
+                time.sleep(0.5)
+
+                response.success = True
+                response.previous_mode = 0  # Would track actual previous mode
+                response.current_mode = request.mode
+                response.message = f"Board mode set to {mode_str}"
+
+                self.get_logger().info(f"✅ Board mode service completed: {mode_str}")
+
+            else:
+                response.success = False
+                response.previous_mode = 0
+                response.current_mode = 0
+                response.message = "Chessboard controller not available"
+
+        except Exception as e:
+            self.get_logger().error(f"Set board mode service error: {e}")
+            response.success = False
+            response.previous_mode = 0
+            response.current_mode = 0
+            response.message = f"Service error: {str(e)}"
+
+        return response
+
     def destroy_node(self):
         """Clean up resources when node is destroyed"""
         try:
