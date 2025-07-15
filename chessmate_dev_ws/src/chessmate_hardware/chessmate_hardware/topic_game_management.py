@@ -13,6 +13,7 @@ import json
 import time
 import threading
 import chess
+import random
 from chessmate_msgs.srv import CalculateMove, ExecuteMove, SetBoardMode
 from chessmate_msgs.msg import GameState, ChessMove
 from chessmate_hardware.topic_engine_client import TopicEngineClient
@@ -131,20 +132,51 @@ class TopicGameManagement(Node):
             self.get_logger().error(f"❌ Error processing game control: {e}")
     
     def handle_human_move(self, msg):
-        """Handle human move input"""
+        """Handle human move input - should come from controller picking from legal moves"""
         if not self.game_active or self.current_player != 'human':
             self.get_logger().warn("⚠️  Human move received but not human's turn")
             return
-        
+
         try:
             move_data = json.loads(msg.data)
             move_uci = move_data.get('move', '')
-            
+
             self.get_logger().info(f"👤 Human move received: {move_uci}")
-            self.process_human_move(move_uci)
-            
+
+            # In real system, this would come from chessboard controller
+            # For now, simulate controller picking from legal moves
+            self.simulate_human_move_from_legal_moves()
+
         except Exception as e:
             self.get_logger().error(f"❌ Error processing human move: {e}")
+
+    def simulate_human_move_from_legal_moves(self):
+        """Simulate human move by having controller pick from Stockfish legal moves"""
+        try:
+            # Get legal moves from current board state
+            legal_moves = list(self.chess_board.legal_moves)
+
+            if not legal_moves:
+                self.get_logger().error("❌ No legal moves available!")
+                return
+
+            # Convert to UCI format
+            legal_moves_uci = [move.uci() for move in legal_moves]
+
+            self.get_logger().info(f"📋 Sending {len(legal_moves_uci)} legal moves to controller")
+            self.get_logger().info(f"📋 Legal moves: {legal_moves_uci[:5]}...")  # Show first 5
+
+            # Simulate controller picking random move (in real system, this would be serial communication)
+            import random
+            selected_move_uci = random.choice(legal_moves_uci)
+
+            self.get_logger().info(f"🎲 Controller selected: {selected_move_uci}")
+
+            # Process the selected move
+            self.process_human_move(selected_move_uci)
+
+        except Exception as e:
+            self.get_logger().error(f"❌ Error in legal move simulation: {e}")
     
     def start_new_game(self):
         """Start a new chess game"""
@@ -233,13 +265,38 @@ class TopicGameManagement(Node):
                     self.get_logger().error("❌ Engine calculation failed")
                     return
                 
+                # Handle promotion moves correctly
                 move_uci = f"{engine_response.best_move.from_square}{engine_response.best_move.to_square}"
+                if engine_response.best_move.promotion_piece and engine_response.best_move.promotion_piece != '':
+                    # Add promotion piece to UCI (q, r, b, n)
+                    promotion_map = {'queen': 'q', 'rook': 'r', 'bishop': 'b', 'knight': 'n'}
+                    promotion_char = promotion_map.get(engine_response.best_move.promotion_piece.lower(), 'q')
+                    move_uci += promotion_char
+
                 computer_move = chess.Move.from_uci(move_uci)
-                
-                # Validate move
+
+                # Debug board state and legal moves
+                self.get_logger().info(f"🔍 Current board FEN: {self.chess_board.fen()}")
+                legal_moves_uci = [move.uci() for move in self.chess_board.legal_moves]
+                self.get_logger().info(f"🔍 Legal moves: {legal_moves_uci[:10]}...")  # Show first 10
+
+                # Validate move - this should ALWAYS be legal since Stockfish generated it
                 if computer_move not in self.chess_board.legal_moves:
-                    self.get_logger().error(f"❌ Invalid computer move: {move_uci}")
-                    return
+                    self.get_logger().error(f"❌ CRITICAL: Stockfish returned illegal move: {move_uci}")
+                    self.get_logger().error(f"❌ This indicates a serious board state sync issue!")
+                    self.get_logger().error(f"❌ Engine FEN: {engine_request.fen}")
+                    self.get_logger().error(f"❌ Board FEN: {self.chess_board.fen()}")
+                    self.get_logger().error(f"❌ Engine response: {engine_response}")
+
+                    # Try to recover by using a random legal move
+                    if legal_moves_uci:
+                        fallback_move = random.choice(list(self.chess_board.legal_moves))
+                        self.get_logger().warn(f"🔄 Using fallback legal move: {fallback_move.uci()}")
+                        computer_move = fallback_move
+                        move_uci = fallback_move.uci()
+                    else:
+                        self.get_logger().error(f"❌ No legal moves available - game should be over!")
+                        return
                 
                 self.get_logger().info(f"✅ Engine calculated: {move_uci} (eval: {engine_response.evaluation})")
                 

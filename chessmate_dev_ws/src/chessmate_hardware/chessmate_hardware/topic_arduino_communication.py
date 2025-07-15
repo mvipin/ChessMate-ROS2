@@ -82,9 +82,11 @@ class TopicArduinoCommunication(Node):
             from_square = move_data.get('from_square', '')
             to_square = move_data.get('to_square', '')
             piece_type = move_data.get('piece_type', '')
-            
-            # Execute the move
-            success = self.execute_robot_move(from_square, to_square, piece_type)
+            is_capture = move_data.get('is_capture', False)
+            promotion_piece = move_data.get('promotion_piece', '')
+
+            # Execute the move with correct 6-character format
+            success = self.execute_robot_move(from_square, to_square, piece_type, is_capture, promotion_piece)
             
             # Prepare response
             response_data = {
@@ -134,26 +136,31 @@ class TopicArduinoCommunication(Node):
         except Exception as e:
             self.get_logger().error(f"❌ Error processing board request: {e}")
     
-    def execute_robot_move(self, from_square, to_square, piece_type):
+    def execute_robot_move(self, from_square, to_square, piece_type, is_capture=False, promotion_piece=''):
         """Execute robot move (mock or real)"""
+
+        # Format as 6-character move for robot controller
+        move_6char = self.format_6char_move(from_square, to_square, piece_type, is_capture, promotion_piece)
+
         if self.hardware_mode == 'mock':
             # Mock execution with realistic delay
-            self.get_logger().info(f"🤖 Mock robot executing: {from_square} -> {to_square} ({piece_type})")
+            self.get_logger().info(f"🤖 Mock robot executing 6-char move: {move_6char}")
+            self.get_logger().info(f"   ({from_square} -> {to_square}, piece: {piece_type})")
             time.sleep(0.5)  # Simulate robot movement time
             return True
         else:
             try:
-                # Send command to robot Arduino
-                command = f"MOVE:{from_square}:{to_square}:{piece_type}\n"
+                # Send 6-character move command to robot Arduino
+                command = f"MOVE:{move_6char}\n"
                 self.robot_serial.write(command.encode())
-                
+
                 # Wait for acknowledgment
                 response = self.robot_serial.readline().decode().strip()
                 success = response.startswith('ACK')
-                
+
                 self.get_logger().info(f"🤖 Robot response: {response}")
                 return success
-                
+
             except Exception as e:
                 self.get_logger().error(f"❌ Robot execution failed: {e}")
                 return False
@@ -181,7 +188,32 @@ class TopicArduinoCommunication(Node):
             except Exception as e:
                 self.get_logger().error(f"❌ Board mode setting failed: {e}")
                 return False
-    
+
+    def format_6char_move(self, from_square, to_square, piece_type, is_capture=False, promotion_piece=''):
+        """Format move as 6-character string for robot controller"""
+        # Correct format: from_square(2) + piece(1) + to_square(2) + piece/capture(1)
+        # Examples: "e2pe4p", "g1nf3n", "d1qd8x" (capture)
+
+        # Map piece types to single characters (handle both full names and single chars)
+        piece_map = {
+            'pawn': 'p', 'rook': 'r', 'knight': 'n',
+            'bishop': 'b', 'queen': 'q', 'king': 'k',
+            'p': 'p', 'r': 'r', 'n': 'n', 'b': 'b', 'q': 'q', 'k': 'k'
+        }
+
+        source_piece = piece_map.get(piece_type.lower(), 'p')
+
+        # Destination piece (same as source unless capture or promotion)
+        if is_capture:
+            dest_piece = 'x'  # Capture indicator
+        elif promotion_piece:
+            dest_piece = piece_map.get(promotion_piece.lower(), 'q')
+        else:
+            dest_piece = source_piece  # Same piece
+
+        move_6char = f"{from_square}{source_piece}{to_square}{dest_piece}"
+        return move_6char
+
     def destroy_node(self):
         """Clean up serial connections on shutdown"""
         if self.chessboard_serial:

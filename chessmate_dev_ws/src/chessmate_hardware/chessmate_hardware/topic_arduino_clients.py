@@ -85,7 +85,8 @@ class TopicRobotClient:
                     'from_square': request.move.from_square,
                     'to_square': request.move.to_square,
                     'piece_type': request.move.piece_type,
-                    'is_capture': request.move.is_capture
+                    'is_capture': request.move.is_capture,
+                    'promotion_piece': request.move.promotion_piece
                 }
             }
             
