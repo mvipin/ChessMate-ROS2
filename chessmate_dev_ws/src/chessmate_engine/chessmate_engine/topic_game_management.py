@@ -143,15 +143,14 @@ class TopicGameManagement(Node):
 
             self.get_logger().info(f"👤 Human move received: {move_uci}")
 
-            # In real system, this would come from chessboard controller
-            # For now, simulate controller picking from legal moves
-            self.simulate_human_move_from_legal_moves()
+            # Process the move directly (it should come from chessboard controller)
+            self.process_human_move(move_uci)
 
         except Exception as e:
             self.get_logger().error(f"❌ Error processing human move: {e}")
 
-    def simulate_human_move_from_legal_moves(self):
-        """Simulate human move by having controller pick from Stockfish legal moves"""
+    def send_legal_moves_for_human_turn(self):
+        """Send legal moves to chessboard controller and start human turn"""
         try:
             # Get legal moves from current board state
             legal_moves = list(self.chess_board.legal_moves)
@@ -166,34 +165,58 @@ class TopicGameManagement(Node):
             self.get_logger().info(f"📋 Sending {len(legal_moves_uci)} legal moves to controller")
             self.get_logger().info(f"📋 Legal moves: {legal_moves_uci[:5]}...")  # Show first 5
 
-            # Simulate controller picking random move (in real system, this would be serial communication)
-            import random
-            selected_move_uci = random.choice(legal_moves_uci)
+            # Send legal moves to chessboard controller via Arduino communication
+            self.send_legal_moves_to_chessboard(legal_moves_uci)
 
-            self.get_logger().info(f"🎲 Controller selected: {selected_move_uci}")
-
-            # Process the selected move
-            self.process_human_move(selected_move_uci)
+            # Now wait for the chessboard controller to send back a move via /game/human_move
+            self.get_logger().info("⏳ Waiting for chessboard controller to send human move...")
 
         except Exception as e:
-            self.get_logger().error(f"❌ Error in legal move simulation: {e}")
-    
+            self.get_logger().error(f"❌ Error in sending legal moves for human turn: {e}")
+
+    def send_legal_moves_to_chessboard(self, legal_moves_uci):
+        """Send legal moves to chessboard controller via Arduino communication"""
+        try:
+            # Send legal moves via serial command to chessboard controller
+            # This needs to be implemented by sending a command to the Arduino communication node
+            # For now, we'll create a publisher to send the legal moves
+            if not hasattr(self, 'legal_moves_publisher'):
+                self.legal_moves_publisher = self.create_publisher(String, 'chessboard/legal_moves', 10)
+
+            legal_moves_data = {
+                'command': 'legal_moves',
+                'moves': legal_moves_uci,
+                'timestamp': time.time()
+            }
+
+            msg = String()
+            msg.data = json.dumps(legal_moves_data)
+            self.legal_moves_publisher.publish(msg)
+
+            self.get_logger().info(f"📤 Legal moves sent to chessboard controller")
+
+        except Exception as e:
+            self.get_logger().error(f"❌ Error sending legal moves to chessboard: {e}")
+
     def start_new_game(self):
         """Start a new chess game"""
         self.get_logger().info("🎮 Starting new chess game...")
-        
+
         # Reset game state
         self.chess_board = chess.Board()
         self.game_active = True
         self.current_player = 'human'  # Human plays white, goes first
         self.move_count = 0
         self.game_history = []
-        
+
         self.publish_game_state()
-        
+
         self.get_logger().info("✅ New game started - waiting for human move")
         self.get_logger().info(f"Current position: {self.chess_board.fen()}")
-    
+
+        # Immediately send legal moves to chessboard controller for human's first turn
+        self.send_legal_moves_for_human_turn()
+
     def stop_game(self):
         """Stop the current game"""
         self.get_logger().info("🛑 Stopping current game...")
@@ -337,9 +360,12 @@ class TopicGameManagement(Node):
                     # Switch to human turn
                     self.current_player = 'human'
                     self.publish_game_state()
-                    
+
                     self.get_logger().info("👤 Waiting for human move...")
-                    
+
+                    # Send legal moves for the next human turn
+                    self.send_legal_moves_for_human_turn()
+
                 else:
                     self.get_logger().error("❌ Robot move execution failed")
                     

@@ -79,21 +79,28 @@ class StockfishInterface:
     def initialize(self) -> bool:
         """Initialize the Stockfish engine"""
         try:
+            print(f"Initializing Stockfish from path: {self.config.path}")
+
             # Start Stockfish engine
             self.engine = chess.engine.SimpleEngine.popen_uci(self.config.path)
-            
+            print("Stockfish process started successfully")
+
             # Configure engine settings
             self.engine.configure({
                 "Threads": self.config.threads,
                 "Hash": self.config.hash_size,
                 "Skill Level": self.config.skill_level
             })
-            
+            print("Stockfish configuration applied successfully")
+
             self._is_initialized = True
             return True
-            
+
         except Exception as e:
             print(f"Failed to initialize Stockfish: {e}")
+            print(f"Exception type: {type(e).__name__}")
+            if hasattr(e, 'args'):
+                print(f"Exception args: {e.args}")
             return False
     
     def shutdown(self):

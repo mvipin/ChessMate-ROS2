@@ -23,9 +23,13 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'chess_game_manager = chessmate_engine.chess_game_manager:main',
-            'chess_engine_server = chessmate_engine.chess_engine_server:main',
+            # Production nodes (actively used)
             'topic_chess_engine_server = chessmate_engine.topic_chess_engine_server:main',
+            'topic_game_management = chessmate_engine.topic_game_management:main',
+
+            # Legacy nodes (for compatibility)
+            'chess_engine_server = chessmate_engine.chess_engine_server:main',
+            'chess_game_manager = chessmate_engine.chess_game_manager:main',
             'simple_chess_engine = chessmate_engine.simple_chess_engine:main',
         ],
     },

@@ -37,21 +37,15 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'rotary_encoder_node = chessmate_hardware.rotary_encoder_node:main',
-            'lcd_display_node = chessmate_hardware.lcd_display_node:main',
+            # Production nodes (actively used)
             'arduino_communication_node = chessmate_hardware.arduino_communication_node:main',
             'unified_arduino_bridge = chessmate_hardware.unified_arduino_bridge:main',
-            'unified_hardware_test = chessmate_hardware.unified_hardware_test:main',
-            'test_arduino_serial = chessmate_hardware.test_arduino_serial:main',
-            'test_ros2_hardware = chessmate_hardware.test_ros2_hardware:main',
-            'game_management_node = chessmate_hardware.game_management_node:main',
-            'robot_animation_controller = chessmate_hardware.robot_animation_controller:main',
-            'test_controller_communication = chessmate_hardware.test_controller_communication:main',
-            'test_integration_comprehensive = chessmate_hardware.test_integration_comprehensive:main',
-            'test_end_to_end_game = chessmate_hardware.test_end_to_end_game:main',
-            'fixed_end_to_end_game = chessmate_hardware.fixed_end_to_end_game:main',
             'topic_arduino_communication = chessmate_hardware.topic_arduino_communication:main',
-            'topic_game_management = chessmate_hardware.topic_game_management:main',
+
+            # UI components (for Raspberry Pi deployment)
+            'rotary_encoder_node = chessmate_hardware.rotary_encoder_node:main',
+            'lcd_display_node = chessmate_hardware.lcd_display_node:main',
+            'robot_animation_controller = chessmate_hardware.robot_animation_controller:main',
         ],
     },
 )

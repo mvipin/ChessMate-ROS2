@@ -81,15 +81,27 @@ void process_cmd(char cmd[], uint8_t size) {
     Serial.println(" pieces");
     Serial.flush();
   } else if (strcmp(tokens[idx],"legal") == 0) {
-    while (++idx < num_tokens) {
-      if (legal_moves_cnt >= LEGAL_MOVES_MAX) {
-        Serial.println("no mem");
-        display_fatal_error();
-        delay(5000); // TODO: Reboot the platform
-        return;
+    // Reset legal moves count before processing new legal moves
+    legal_moves_cnt = 0;
+    check_squares_cnt = 0;  // Also reset check squares for clean state
+
+    // Parse comma-separated legal moves from tokens[1]
+    if (num_tokens > 1 && tokens[1] != NULL) {
+      char moves_copy[CMD_LEN_MAX];
+      strncpy(moves_copy, tokens[1], CMD_LEN_MAX - 1);
+      moves_copy[CMD_LEN_MAX - 1] = '\0';
+
+      char* move_token = strtok(moves_copy, ",");
+      while (move_token != NULL && legal_moves_cnt < LEGAL_MOVES_MAX) {
+        // Trim whitespace and copy move
+        while (*move_token == ' ') move_token++; // Skip leading spaces
+        if (strlen(move_token) >= 4) {
+          strncpy(legal_moves[legal_moves_cnt], move_token, 4);
+          legal_moves[legal_moves_cnt][4] = '\0';
+          legal_moves_cnt++;
+        }
+        move_token = strtok(NULL, ",");
       }
-      strncpy(legal_moves[legal_moves_cnt], tokens[idx], 4);
-      legal_moves[legal_moves_cnt++][4] = '\0';
     }
     Serial.print("LEGAL: Set ");
     Serial.print(legal_moves_cnt);
