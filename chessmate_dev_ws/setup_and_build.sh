@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) 2025 Vipin M
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 # ChessMate ROS2 Workspace Setup and Build Script
 #
 # This script sets up the complete ChessMate ROS2 development environment,

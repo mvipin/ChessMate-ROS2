@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright (c) 2025 Vipin M
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 # Test Step 6: Complete ChessMate System
 echo "🎉 Step 6: Complete ChessMate System Test"

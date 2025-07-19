@@ -1,5 +1,8 @@
 #include <Arduino.h>
 #include <Adafruit_MCP23X17.h>
+// Copyright (c) 2025 Vipin M
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 #include "Sensor.h"
 #include "Display.h"
 

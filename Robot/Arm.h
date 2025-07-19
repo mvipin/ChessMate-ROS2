@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Vipin M
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 #ifndef ARM_H
 #define ARM_H
 

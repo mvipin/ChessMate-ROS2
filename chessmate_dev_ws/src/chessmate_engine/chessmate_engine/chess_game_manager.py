@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (c) 2025 Vipin M
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 """
 Chess Game Manager Node
 Manages chess game state and coordinates between board sensors, engine, and robot

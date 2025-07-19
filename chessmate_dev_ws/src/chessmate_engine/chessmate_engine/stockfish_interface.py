@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (c) 2025 Vipin M
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 """
 Stockfish Chess Engine Interface
 Provides Python wrapper for Stockfish UCI chess engine

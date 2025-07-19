@@ -1,3 +1,6 @@
+# Copyright (c) 2025 Vipin M
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 cmake_minimum_required(VERSION 3.8)
 project(chessmate_msgs)
 
@@ -44,13 +47,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
+  # Copyright and license have been added to all source files
+  # set(ament_cmake_copyright_FOUND TRUE)
+  # cpplint enabled for git repo with copyright headers
+  # set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
 

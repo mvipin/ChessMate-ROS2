@@ -1,6 +1,9 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
+// Copyright (c) 2025 Vipin M
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 #include "Display.h"
 
 #define DISPLAY_LED_PIN 12

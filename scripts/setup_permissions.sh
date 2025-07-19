@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) 2025 Vipin M
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 # Setup script permissions for ChessMate project
 
 echo "🔧 Setting up ChessMate Script Permissions"
